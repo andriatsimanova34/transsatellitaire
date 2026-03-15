@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulation Hamming(7,4) — Liaison Satellite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg:        #0f0f1a;
+    --bg2:       #16162a;
+    --bg3:       #1e1e35;
+    --card:      #1a1a2e;
+    --border:    #2a2a4a;
+    --accent:    #6c63ff;
+    --accent2:   #00d4aa;
+    --amber:     #ffa94d;
+    --text:      #e8e8f0;
+    --text2:     #9898b8;
+    --text3:     #5a5a7a;
+    --green:     #51cf66;
+    --red:       #ff6b6b;
+    --purple:    #845ef7;
+    --teal:      #20c997;
+    --bit-parity-bg: #2d1f6e;
+    --bit-parity-fg: #a78bfa;
+    --bit-data-bg:   #0f3d30;
+    --bit-data-fg:   #34d399;
+    --bit-error-bg:  #4a0e0e;
+    --bit-error-fg:  #f87171;
+    --bit-fixed-bg:  #0f3d1a;
+    --bit-fixed-fg:  #4ade80;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--accent);
+  }
+  .app-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .app-sub { font-size: 11px; color: var(--text3); }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; gap: 6px; padding: 8px 20px; background: var(--bg); }
+  .tab-btn {
+    padding: 6px 16px; border: none; border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    cursor: pointer; transition: all .2s;
+  }
+  .tab-btn.active  { background: var(--accent);  color: #fff; }
+  .tab-btn.active2 { background: var(--accent2); color: var(--bg); }
+  .tab-btn.inactive { background: var(--bg3); color: var(--text2); }
+
+  /* ── Main layout ── */
+  .tab-content { display: none; padding: 0 16px 16px; }
+  .tab-content.visible { display: block; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Section ── */
+  .section {
+    background: var(--card);
+    border-radius: 6px; border: 1px solid var(--border);
+    margin-bottom: 8px; overflow: hidden;
+  }
+  .section-hdr {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    font-size: 11px; font-weight: bold;
+  }
+  .section-body { padding: 8px 10px; }
+
+  /* ── Bit cells ── */
+  .bit-row { display: flex; align-items: center; gap: 4px; margin: 4px 0; flex-wrap: wrap; }
+  .bit-row-label { font-size: 11px; color: var(--text2); min-width: 150px; }
+
+  .bit-cell {
+    width: 44px; height: 44px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700;
+    border: 1.5px solid; transition: all .3s;
+    position: relative;
+  }
+  .bit-cell.data    { background: var(--bit-data-bg);   color: var(--bit-data-fg);   border-color: var(--teal); }
+  .bit-cell.parity  { background: var(--bit-parity-bg); color: var(--bit-parity-fg); border-color: var(--purple); }
+  .bit-cell.error   { background: var(--bit-error-bg);  color: var(--bit-error-fg);  border-color: var(--red); animation: pulse-err .6s ease infinite alternate; }
+  .bit-cell.fixed   { background: var(--bit-fixed-bg);  color: var(--bit-fixed-fg);  border-color: var(--green); animation: pulse-fix .6s ease infinite alternate; }
+  .bit-cell.neutral { background: var(--bg3);           color: var(--text2);          border-color: var(--border); }
+
+  @keyframes pulse-err { from { box-shadow: 0 0 0 0 rgba(255,107,107,.3); } to { box-shadow: 0 0 8px 4px rgba(255,107,107,.5); } }
+  @keyframes pulse-fix { from { box-shadow: 0 0 0 0 rgba(74,222,128,.3); } to { box-shadow: 0 0 8px 4px rgba(74,222,128,.5); } }
+
+  .bit-label-row { display: flex; gap: 4px; font-size: 9px; margin-bottom: 2px; margin-left: 154px; }
+  .bit-lbl { width: 44px; text-align: center; }
+  .bit-lbl.p { color: var(--bit-parity-fg); }
+  .bit-lbl.d { color: var(--bit-data-fg); }
+
+  /* ── Formula lines ── */
+  .formula { font-size: 11px; padding: 2px 6px; background: var(--bg3); border-radius: 3px; margin: 2px 0; }
+  .formula.ok  { color: var(--green); }
+  .formula.bad { color: var(--red); }
+  .formula.neutral { color: var(--text2); }
+
+  /* ── Input / Controls ── */
+  .ctrl-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+  input[type=text], input[type=number] {
+    background: var(--bg3); color: var(--accent2);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 8px; font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    outline: none; width: 100px;
+  }
+  input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 6px 14px; border: none; border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { filter: brightness(1.15); }
+  .btn-accent  { background: var(--accent);  color: #fff; }
+  .btn-accent2 { background: var(--accent2); color: var(--bg); }
+  .btn-amber   { background: var(--amber);   color: var(--bg); }
+  .btn-dim     { background: var(--bg3);     color: var(--text2); }
+
+  input[type=range] {
+    accent-color: var(--accent2);
+    background: transparent; height: 4px; cursor: pointer;
+    width: 180px;
+  }
+
+  /* ── Spinbox ── */
+  .spinbox-wrap { display: flex; align-items: center; gap: 0; }
+  .spinbox-wrap input { width: 52px; text-align: center; color: var(--red); }
+  .spinbox-wrap button {
+    background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+    width: 22px; height: 34px; cursor: pointer; font-size: 14px;
+    transition: background .1s;
+  }
+  .spinbox-wrap button:hover { background: var(--border); }
+  .spinbox-wrap button:first-child { border-radius: 4px 0 0 4px; }
+  .spinbox-wrap button:last-child  { border-radius: 0 4px 4px 0; }
+
+  /* ── Stats ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stat-card  { background: var(--bg3); border-radius: 4px; padding: 8px 10px; text-align: center; }
+  .stat-num   { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; }
+  .stat-lbl   { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+
+  /* ── Result big ── */
+  .result-big {
+    font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
+    text-align: center; padding: 12px 0 4px;
+    transition: color .3s;
+  }
+  .result-row { display: flex; justify-content: center; gap: 20px; padding-bottom: 8px; font-size: 12px; }
+
+  /* ── Channel params ── */
+  .channel-params { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0; }
+  .channel-param { text-align: center; }
+  .channel-param .cp-val { font-size: 12px; font-weight: bold; }
+  .channel-param .cp-lbl { font-size: 10px; color: var(--text3); }
+
+  /* ── Info label ── */
+  .info-lbl { font-size: 11px; color: var(--amber); margin: 2px 0; min-height: 16px; }
+  .error-lbl { font-size: 11px; margin: 2px 0; min-height: 16px; }
+
+  /* ── Syndrome result ── */
+  .syn-result { background: var(--bg3); border-radius: 4px; padding: 6px 8px; font-size: 12px; margin-top: 4px; }
+
+  /* ── Speed radio ── */
+  .radio-group { display: flex; gap: 12px; align-items: center; }
+  .radio-group label { font-size: 11px; color: var(--text2); cursor: pointer; display: flex; gap: 4px; align-items: center; }
+  .radio-group input[type=radio] { accent-color: var(--accent); }
+
+  /* ── Text tab ── */
+  .txt-summary {
+    background: var(--bg3); border-radius: 6px;
+    display: flex; align-items: center; gap: 20px;
+    padding: 8px 16px; margin-bottom: 8px;
+  }
+  .txt-result-big { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+  .nibble-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden;
+  }
+  .nibble-card-hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 8px; font-size: 11px; font-weight: bold;
+  }
+  .nibble-card-body { padding: 6px 8px; }
+  .card-section-title { font-size: 10px; font-weight: bold; margin: 4px 0 2px; }
+  .card-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+  /* Small bit cell for text tab */
+  .bit-cell-sm {
+    width: 34px; height: 34px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700;
+    border: 1.5px solid; transition: all .2s;
+  }
+  .bit-cell-sm.data    { background: var(--bit-data-bg);   color: var(--bit-data-fg);   border-color: var(--teal); }
+  .bit-cell-sm.parity  { background: var(--bit-parity-bg); color: var(--bit-parity-fg); border-color: var(--purple); }
+  .bit-cell-sm.error   { background: var(--bit-error-bg);  color: var(--bit-error-fg);  border-color: var(--red); }
+  .bit-cell-sm.fixed   { background: var(--bit-fixed-bg);  color: var(--bit-fixed-fg);  border-color: var(--green); }
+  .bit-cell-sm.neutral { background: var(--bg3);           color: var(--text2);          border-color: var(--border); }
+
+  .bit-row-sm { display: flex; align-items: center; gap: 2px; margin: 2px 0; flex-wrap: wrap; }
+  .bit-row-sm-label { font-size: 10px; color: var(--text3); min-width: 100px; }
+
+  .decimal-lbl { font-size: 13px; font-weight: bold; color: var(--teal); margin-left: 6px; }
+
+  /* Scrollable cards zone */
+  .cards-scroll { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+  .cards-scroll::-webkit-scrollbar { width: 6px; }
+  .cards-scroll::-webkit-scrollbar-track { background: var(--bg2); }
+  .cards-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Scan animation for bit cells */
+  @keyframes flip-in {
+    from { transform: rotateY(90deg); opacity: 0; }
+    to   { transform: rotateY(0deg);  opacity: 1; }
+  }
+  .bit-cell.animating, .bit-cell-sm.animating { animation: flip-in .3s ease-out; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="app-header">
+  <span class="app-title">◈ HAMMING(7,4) SIMULATION PAR SATELLITE</span>
+  <span class="app-sub">Eutelsat 5W · 14.25 GHz · 35 786 km</span>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active"   id="btn-tab1" onclick="showTab(1)">⬡ BIT UNIQUE</button>
+  <button class="tab-btn inactive" id="btn-tab2" onclick="showTab(2)">✦ TRANSMISSION TEXTE</button>
+</div>
+
+<!-- ═══════════════════════ TAB 1 ═══════════════════════ -->
+<div class="tab-content visible" id="tab1">
+  <div class="two-col">
+
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <!-- DONNÉES SOURCE -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--teal)">▶ &nbsp;DONNÉES SOURCE</div>
+        <div class="section-body">
+          <div class="ctrl-row">
+            <span style="font-size:12px;color:var(--text2)">Valeur :</span>
+            <input type="text" id="input-val" value="1011" maxlength="10" onkeydown="if(event.key==='Enter')onInputChange()">
+            <button class="btn btn-accent" onclick="onInputChange()">SIMULER →</button>
+          </div>
+          <div class="info-lbl" id="input-info"></div>
+          <div class="bit-label-row">
+            <span class="bit-lbl d">d₁</span>
+            <span class="bit-lbl d">d₂</span>
+            <span class="bit-lbl d">d₃</span>
+            <span class="bit-lbl d">d₄</span>
+          </div>
+          <div class="bit-row">
+            <span class="bit-row-label">Bits d1 d2 d3 d4 :</span>
+            <div class="bit-cell data" id="dc0">1</div>
+            <div class="bit-cell data" id="dc1">0</div>
+            <div class="bit-cell data" id="dc2">1</div>
+            <div class="bit-cell data" id="dc3">1</div>
+            <span class="decimal-lbl" id="decimal-lbl">= 11₁₀</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENCODAGE -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--purple)">▶ &nbsp;ENCODAGE HAMMING(7,4)</div>
+        <div class="section-body">
+          <div id="parity-formulas"></div>
+          <div class="bit-label-row" style="margin-left:150px">
+            <span class="bit-lbl p">p₁</span>
+            <span class="bit-lbl p">p₂</span>
+            <span class="bit-lbl d">d₁</span>
+            <span class="bit-lbl p">p₃</span>
+            <span class="bit-lbl d">d₂</span>
+            <span class="bit-lbl d">d₃</span>
+            <span class="bit-lbl d">d₄</span>
+          </div>
+          <div class="bit-row">
+            <span class="bit-row-label">Mot émis x(7) :</span>
+            <div class="bit-cell parity" id="tx0">0</div>
+            <div class="bit-cell parity" id="tx1">0</div>
+            <div class="bit-cell data"   id="tx2">0</div>
+            <div class="bit-cell parity" id="tx3">0</div>
+            <div class="bit-cell data"   id="tx4">0</div>
+            <div class="bit-cell data"   id="tx5">0</div>
+            <div class="bit-cell data"   id="tx6">0</div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Rendement : 4/7 ≈ 57 %</div>
+        </div>
+      </div>
+
+      <!-- CANAL -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--amber)">▶ &nbsp;CANAL SATELLITE</div>
+        <div class="section-body">
+          <div class="channel-params">
+            <div class="channel-param"><div class="cp-lbl">Distance</div><div class="cp-val" style="color:var(--text)">35 786 km</div></div>
+            <div class="channel-param"><div class="cp-lbl">Fréquence</div><div class="cp-val" style="color:var(--text)">14,25 GHz (Ku)</div></div>
+            <div class="channel-param"><div class="cp-lbl">Délai</div><div class="cp-val" style="color:var(--amber)">≈ 119 ms</div></div>
+            <div class="channel-param"><div class="cp-lbl">FSPL</div><div class="cp-val" style="color:var(--red)">≈ 206 dB</div></div>
+            <div class="channel-param"><div class="cp-lbl">Eb/N₀</div><div class="cp-val" style="color:var(--green)">6 dB</div></div>
+          </div>
+          <div class="ctrl-row" style="margin-top:6px">
+            <span style="font-size:12px;color:var(--text2)">Simuler erreur pos. :</span>
+            <div class="spinbox-wrap">
+              <button onclick="changeErr(-1)">−</button>
+              <input type="number" id="err-pos" value="0" min="0" max="7" oninput="clampErr();onInputChange()">
+              <button onclick="changeErr(+1)">+</button>
+            </div>
+            <span style="font-size:11px;color:var(--text3)">(0 = aucune)</span>
+            <button class="btn btn-dim" style="color:var(--amber)" onclick="randomError()">Aléatoire</button>
+          </div>
+          <div class="bit-row" style="margin-top:6px">
+            <span class="bit-row-label">Mot reçu y(7) :</span>
+            <div class="bit-cell parity" id="rx0">0</div>
+            <div class="bit-cell parity" id="rx1">0</div>
+            <div class="bit-cell data"   id="rx2">0</div>
+            <div class="bit-cell parity" id="rx3">0</div>
+            <div class="bit-cell data"   id="rx4">0</div>
+            <div class="bit-cell data"   id="rx5">0</div>
+            <div class="bit-cell data"   id="rx6">0</div>
+          </div>
+          <div class="error-lbl" id="error-lbl" style="color:var(--text3)">Aucune erreur</div>
+        </div>
+      </div>
+
+    </div><!-- end left col -->
+
+    <!-- RIGHT COLUMN -->
+    <div>
+
+      <!-- SYNDROME -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--red)">▶ &nbsp;CALCUL DU SYNDROME</div>
+        <div class="section-body">
+          <div id="syn-formulas"></div>
+          <div class="syn-result" id="syn-result" style="color:var(--green)">
+            Syndrome = (0 0 0)₂ = 0 → Aucune erreur ✓
+          </div>
+        </div>
+      </div>
+
+      <!-- CORRECTION -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--green)">▶ &nbsp;CORRECTION &amp; EXTRACTION</div>
+        <div class="section-body">
+          <div class="bit-row">
+            <span class="bit-row-label">Mot corrigé ĉ :</span>
+            <div class="bit-cell parity" id="cr0">0</div>
+            <div class="bit-cell parity" id="cr1">0</div>
+            <div class="bit-cell data"   id="cr2">0</div>
+            <div class="bit-cell parity" id="cr3">0</div>
+            <div class="bit-cell data"   id="cr4">0</div>
+            <div class="bit-cell data"   id="cr5">0</div>
+            <div class="bit-cell data"   id="cr6">0</div>
+          </div>
+          <div class="bit-row">
+            <span class="bit-row-label">Données extraites :</span>
+            <div class="bit-cell data" id="out0">0</div>
+            <div class="bit-cell data" id="out1">0</div>
+            <div class="bit-cell data" id="out2">0</div>
+            <div class="bit-cell data" id="out3">0</div>
+          </div>
+          <div class="error-lbl" id="corr-lbl" style="color:var(--text3)"></div>
+        </div>
+      </div>
+
+      <!-- RÉSULTAT -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--accent2)">▶ &nbsp;RÉSULTAT FINAL</div>
+        <div class="section-body" style="background:var(--bg3);border-radius:4px;padding:8px">
+          <div class="result-big" id="result-big" style="color:var(--green)">✓ MESSAGE INTACT</div>
+          <div class="result-row">
+            <span id="orig-lbl" style="color:var(--text2)">Original    : 1011</span>
+            <span id="recon-lbl" style="color:var(--accent2)">Reconstruit : 1011</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTRÔLES -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--accent)">▶ &nbsp;CONTRÔLES</div>
+        <div class="section-body">
+          <div class="ctrl-row">
+            <button class="btn btn-dim" onclick="resetSim()">⟳ RESET</button>
+            <button class="btn btn-amber" onclick="randomDemo()">⚡ ALÉATOIRE</button>
+          </div>
+          <div class="ctrl-row" style="margin-top:4px">
+            <span style="font-size:11px;color:var(--text2)">Vitesse :</span>
+            <div class="radio-group">
+              <label><input type="radio" name="speed" value="900" onchange="setSpeed(900)"> Lente</label>
+              <label><input type="radio" name="speed" value="500" onchange="setSpeed(500)" checked> Normale</label>
+              <label><input type="radio" name="speed" value="150" onchange="setSpeed(150)"> Rapide</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="section">
+        <div class="section-hdr" style="color:var(--text3)">▶ &nbsp;STATISTIQUES DE SESSION</div>
+        <div class="section-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-lbl">Transmissions</div>
+              <div class="stat-num" id="stat-total" style="color:var(--text)">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-lbl">Erreurs</div>
+              <div class="stat-num" id="stat-errors" style="color:var(--red)">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-lbl">Corrigées</div>
+              <div class="stat-num" id="stat-corrected" style="color:var(--green)">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end right col -->
+  </div><!-- end two-col -->
+</div><!-- end tab1 -->
+
+<!-- ═══════════════════════ TAB 2 ═══════════════════════ -->
+<div class="tab-content" id="tab2">
+
+  <!-- Input section -->
+  <div class="section">
+    <div class="section-hdr" style="color:var(--teal)">▶ &nbsp;MESSAGE TEXTE À TRANSMETTRE</div>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <span style="font-size:12px;color:var(--text2)">Texte :</span>
+        <input type="text" id="txt-input" value="HELLO" style="width:220px" onkeydown="if(event.key==='Enter')runTextSim()">
+        <span style="font-size:12px;color:var(--text2)">BER :</span>
+        <input type="range" id="ber-slider" min="0" max="0.5" step="0.01" value="0.15" oninput="updateBerLabel()">
+        <span id="ber-label" style="font-size:12px;color:var(--amber)">15 %</span>
+        <button class="btn btn-accent2" onclick="runTextSim()">▶ TRANSMETTRE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary banner -->
+  <div class="txt-summary" id="txt-summary" style="display:none">
+    <div class="txt-result-big" id="txt-result-big">—</div>
+    <div id="txt-orig-lbl" style="font-size:12px;color:var(--text2)"></div>
+    <div id="txt-recon-lbl" style="font-size:12px"></div>
+  </div>
+
+  <!-- Cards zone -->
+  <div class="cards-scroll">
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+</div>
+
+<script>
+// ─── Hamming logic ───────────────────────────────────────
+function encodeHamming(d) {
+  const [d1,d2,d3,d4] = d;
+  const p1 = d1^d2^d4, p2 = d1^d3^d4, p3 = d2^d3^d4;
+  return [p1,p2,d1,p3,d2,d3,d4];
+}
+function introduceError(cw, pos) {
+  const r = [...cw];
+  if (pos>=1 && pos<=7) r[pos-1] ^= 1;
+  return r;
+}
+function computeSyndrome(y) {
+  const s1 = y[0]^y[2]^y[4]^y[6];
+  const s2 = y[1]^y[2]^y[5]^y[6];
+  const s3 = y[3]^y[4]^y[5]^y[6];
+  return [s1,s2,s3];
+}
+function decodeHamming(rx) {
+  const [s1,s2,s3] = computeSyndrome(rx);
+  const syn = s3*4 + s2*2 + s1;
+  const cor = [...rx];
+  if (syn!==0) cor[syn-1] ^= 1;
+  const data = [cor[2],cor[4],cor[5],cor[6]];
+  return {cor, syn, data, s1, s2, s3};
+}
+function bitsToDecimal(bits) {
+  return bits.reduce((acc,b,i) => acc + b*(1<<(bits.length-1-i)), 0);
+}
+function decimalToBits4(n) {
+  n = Math.max(0, Math.min(15, n));
+  return [3,2,1,0].map(i => (n>>i)&1);
+}
+function charToBits8(c) {
+  const code = c.charCodeAt(0) & 0xFF;
+  return Array.from({length:8}, (_,i) => (code>>(7-i))&1);
+}
+function bits8ToChar(bits) {
+  const val = bits.reduce((a,b,i) => a + b*(1<<(7-i)), 0);
+  return (val>=32 && val<=126) ? String.fromCharCode(val) : '?';
+}
+function encodeText(text) {
+  const res = [];
+  for (const ch of text) {
+    const b8 = charToBits8(ch);
+    const hi = b8.slice(0,4), lo = b8.slice(4);
+    res.push({ch, nib:0, data4:hi, cw:encodeHamming(hi)});
+    res.push({ch, nib:1, data4:lo, cw:encodeHamming(lo)});
+  }
+  return res;
+}
+
+// ─── State ───────────────────────────────────────────────
+let dataBits = [1,0,1,1];
+let stepDelay = 500;
+let stats = {total:0, errors:0, corrected:0};
+let animTimer = null;
+
+// ─── UI helpers ──────────────────────────────────────────
+function setCell(id, val, style) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.className = 'bit-cell ' + style;
+  el.classList.add('animating');
+  setTimeout(() => el.classList.remove('animating'), 350);
+}
+function setFormulas(containerId, lines) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = lines.map(([txt,ok]) =>
+    `<div class="formula ${ok?'ok':'bad'}">${txt}</div>`).join('');
+}
+function el(id) { return document.getElementById(id); }
+
+// ─── Input parsing ───────────────────────────────────────
+function parseInput(val) {
+  val = val.trim();
+  if (/^[01]{4}$/.test(val)) {
+    return { bits: val.split('').map(Number), info: `Binaire : ${val} = ${parseInt(val,2)} décimal` };
+  }
+  if (/^\d+$/.test(val) && +val>=0 && +val<=15) {
+    const bits = decimalToBits4(+val);
+    return { bits, info: `Décimal ${val} → binaire : ${bits.join('')}` };
+  }
+  if (/^[a-zA-Z]$/.test(val)) {
+    const code = val.toUpperCase().charCodeAt(0);
+    const bits = decimalToBits4(code & 0x0F);
+    return { bits, info: `'${val.toUpperCase()}' ASCII=${code} → 4 LSB : ${bits.join('')}` };
+  }
+  return null;
+}
+
+function onInputChange() {
+  const val = el('input-val').value;
+  const parsed = parseInput(val);
+  if (!parsed) { el('input-info').textContent = 'Format non reconnu (ex: 1011, 7, ou A)'; el('input-info').style.color='var(--red)'; return; }
+  el('input-info').textContent = parsed.info;
+  el('input-info').style.color = 'var(--amber)';
+  dataBits = parsed.bits;
+  runSimulation();
+}
+
+function changeErr(delta) {
+  const inp = el('err-pos');
+  let v = parseInt(inp.value)||0;
+  v = Math.max(0, Math.min(7, v+delta));
+  inp.value = v;
+  runSimulation();
+}
+function clampErr() {
+  const inp = el('err-pos');
+  let v = parseInt(inp.value)||0;
+  inp.value = Math.max(0, Math.min(7, v));
+}
+function randomError() {
+  el('err-pos').value = Math.floor(Math.random()*7)+1;
+  runSimulation();
+}
+function randomDemo() {
+  el('input-val').value = String(Math.floor(Math.random()*16));
+  el('err-pos').value   = Math.floor(Math.random()*7)+1;
+  onInputChange();
+}
+function resetSim() {
+  el('input-val').value = '1011';
+  el('err-pos').value   = '0';
+  el('input-info').textContent = '';
+  stats = {total:0, errors:0, corrected:0};
+  ['stat-total','stat-errors','stat-corrected'].forEach(id => el(id).textContent='0');
+  dataBits = [1,0,1,1];
+  runSimulation();
+}
+function setSpeed(v) { stepDelay = v; }
+
+// ─── MAIN SIMULATION ──────────────────────────────────────
+function runSimulation() {
+  // re-parse from input in case called directly
+  const parsed = parseInput(el('input-val').value);
+  if (parsed) dataBits = parsed.bits;
+
+  const bits = dataBits;
+  const err  = parseInt(el('err-pos').value)||0;
+  const cw   = encodeHamming(bits);
+  const rx   = introduceError(cw, err);
+  const {cor, syn, data, s1, s2, s3} = decodeHamming(rx);
+
+  // stats
+  stats.total++;
+  if (err!==0) stats.errors++;
+  if (err!==0 && JSON.stringify(data)===JSON.stringify(bits)) stats.corrected++;
+  el('stat-total').textContent     = stats.total;
+  el('stat-errors').textContent    = stats.errors;
+  el('stat-corrected').textContent = stats.corrected;
+
+  // animated steps
+  if (animTimer) { clearTimeout(animTimer); animTimer=null; }
+  const d = stepDelay;
+  const d1=bits[0],d2=bits[1],d3=bits[2],d4=bits[3];
+  const p1=cw[0],p2=cw[1],p3=cw[3];
+
+  // Step 1: data bits
+  setTimeout(() => {
+    bits.forEach((b,i) => setCell(`dc${i}`, b, 'data'));
+    el('decimal-lbl').textContent = `= ${bitsToDecimal(bits)}₁₀`;
+  }, 0);
+
+  // Step 2: encoding
+  setTimeout(() => {
+    setFormulas('parity-formulas', [
+      [`p₁ = d₁⊕d₂⊕d₄ = ${d1}⊕${d2}⊕${d4} = ${p1}`, p1===0],
+      [`p₂ = d₁⊕d₃⊕d₄ = ${d1}⊕${d3}⊕${d4} = ${p2}`, p2===0],
+      [`p₃ = d₂⊕d₃⊕d₄ = ${d2}⊕${d3}⊕${d4} = ${p3}`, p3===0],
+    ]);
+    cw.forEach((b,i) => setCell(`tx${i}`, b, i===0||i===1||i===3 ? 'parity' : 'data'));
+  }, d);
+
+  // Step 3: channel / received
+  setTimeout(() => {
+    rx.forEach((b,i) => {
+      const st = err===i+1 ? 'error' : (i===0||i===1||i===3 ? 'parity' : 'data');
+      setCell(`rx${i}`, b, st);
+    });
+    if (err===0) {
+      el('error-lbl').textContent='Signal transmis sans erreur ✓'; el('error-lbl').style.color='var(--green)';
+    } else {
+      el('error-lbl').textContent=`⚠ Erreur en position ${err} : x[${err}]=${cw[err-1]} → y[${err}]=${rx[err-1]}`;
+      el('error-lbl').style.color='var(--red)';
+    }
+  }, d*2);
+
+  // Step 4: syndrome
+  setTimeout(() => {
+    const y=rx;
+    setFormulas('syn-formulas', [
+      [`s₁ = y₁⊕y₃⊕y₅⊕y₇ = ${y[0]}⊕${y[2]}⊕${y[4]}⊕${y[6]} = ${s1}`, s1===0],
+      [`s₂ = y₂⊕y₃⊕y₆⊕y₇ = ${y[1]}⊕${y[2]}⊕${y[5]}⊕${y[6]} = ${s2}`, s2===0],
+      [`s₃ = y₄⊕y₅⊕y₆⊕y₇ = ${y[3]}⊕${y[4]}⊕${y[5]}⊕${y[6]} = ${s3}`, s3===0],
+    ]);
+    if (syn===0) {
+      el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = 0  →  Aucune erreur ✓`;
+      el('syn-result').style.color='var(--green)';
+    } else {
+      el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = ${syn}₁₀  →  Erreur position ${syn}`;
+      el('syn-result').style.color='var(--red)';
+    }
+  }, d*3);
+
+  // Step 5: correction
+  setTimeout(() => {
+    cor.forEach((b,i) => {
+      let st = i===syn-1 && syn!==0 ? 'fixed' : (i===0||i===1||i===3 ? 'parity' : 'data');
+      setCell(`cr${i}`, b, st);
+    });
+    data.forEach((b,i) => setCell(`out${i}`, b, 'data'));
+    if (syn!==0 && err!==0) {
+      el('corr-lbl').textContent=`Bit ${syn} corrigé : ${rx[syn-1]} → ${cor[syn-1]} ✓`;
+      el('corr-lbl').style.color='var(--green)';
+    } else if (syn===0) {
+      el('corr-lbl').textContent='Aucune correction nécessaire'; el('corr-lbl').style.color='var(--text3)';
+    } else {
+      el('corr-lbl').textContent='Correction appliquée'; el('corr-lbl').style.color='var(--amber)';
+    }
+  }, d*4);
+
+  // Step 6: result
+  setTimeout(() => {
+    const ok = JSON.stringify(data)===JSON.stringify(bits);
+    const decOrig  = bitsToDecimal(bits);
+    const decRecon = bitsToDecimal(data);
+    el('result-big').textContent = ok ? '✓ MESSAGE INTACT' : '✗ ERREUR NON CORRIGÉE';
+    el('result-big').style.color = ok ? 'var(--green)' : 'var(--red)';
+    el('orig-lbl').textContent   = `Original    : ${bits.join('')} = ${decOrig}`;
+    el('recon-lbl').textContent  = `Reconstruit : ${data.join('')} = ${decRecon}`;
+    el('recon-lbl').style.color  = ok ? 'var(--accent2)' : 'var(--red)';
+  }, d*5);
+}
+
+// ─── TEXT SIMULATION ─────────────────────────────────────
+function updateBerLabel() {
+  const v = parseFloat(el('ber-slider').value);
+  el('ber-label').textContent = Math.round(v*100) + ' %';
+}
+
+function runTextSim() {
+  const text = el('txt-input').value;
+  if (!text) return;
+  const ber = parseFloat(el('ber-slider').value);
+  const framesEncoded = encodeText(text);
+
+  const framesRx = framesEncoded.map(f => {
+    const rx = f.cw.map(b => Math.random()<ber ? b^1 : b);
+    return {...f, rx};
+  });
+
+  const decoded = framesRx.map(f => {
+    const {cor, syn, data, s1, s2, s3} = decodeHamming(f.rx);
+    return {...f, cor, syn, data4Decoded:data, s1, s2, s3};
+  });
+
+  // Reconstruct text
+  const recon = [];
+  for (let i=0; i<decoded.length; i+=2) {
+    const bits8 = [...decoded[i].data4Decoded, ...decoded[i+1].data4Decoded];
+    recon.push(bits8ToChar(bits8));
+  }
+  const reconStr = recon.join('');
+  const ok = reconStr===text;
+
+  el('txt-summary').style.display='flex';
+  el('txt-result-big').textContent = ok ? '✓ TEXTE INTACT' : `⚠ ${Array.from(text).filter((c,i)=>c!==reconStr[i]).length} CAR. ALTÉRÉ(S)`;
+  el('txt-result-big').style.color = ok ? 'var(--green)' : 'var(--red)';
+  el('txt-orig-lbl').textContent   = `Original : ${text}`;
+  el('txt-recon-lbl').textContent  = `→  Reçu : ${reconStr}`;
+  el('txt-recon-lbl').style.color  = ok ? 'var(--green)' : 'var(--red)';
+
+  // Build cards
+  const grid = el('cards-grid');
+  grid.innerHTML = '';
+  const POS_LBLS = ['p₁','p₂','d₁','p₃','d₂','d₃','d₄'];
+
+  decoded.forEach((nd, idx) => {
+    const chIdx = Math.floor(idx/2)+1;
+    const hdrColor = nd.nib===0 ? 'var(--teal)' : 'var(--purple)';
+    const nibLabel = nd.nib===0 ? 'HAUT' : 'BAS';
+    const nib_ok   = JSON.stringify(nd.data4Decoded)===JSON.stringify(nd.data4);
+    const errBits  = nd.rx.map((b,i)=>b!==nd.cw[i]?i+1:null).filter(Boolean);
+
+    const {data4, cw, rx, cor, syn, s1, s2, s3} = nd;
+    const d1=data4[0],d2=data4[1],d3=data4[2],d4=data4[3];
+    const p1=cw[0],p2=cw[1],p3=cw[3];
+    const s3v=s3;
+
+    function bitCells(bits, styles, size='sm') {
+      return bits.map((b,i)=>`<div class="bit-cell-${size} ${styles[i]}">${b}</div>`).join('');
+    }
+    function bitRowSm(label, bits, styles) {
+      const labels = bits.map((_,i)=>{
+        const s=styles[i];
+        const c=s==='parity'?'var(--bit-parity-fg)':s==='data'?'var(--bit-data-fg)':s==='fixed'?'var(--green)':s==='error'?'var(--red)':'var(--text3)';
+        return `<span style="width:34px;text-align:center;font-size:9px;color:${c}">${POS_LBLS[i]}</span>`;
+      }).join('');
+      return `
+        <div class="bit-row-sm">
+          <span class="bit-row-sm-label">${label}</span>
+          <div>
+            <div style="display:flex;gap:2px">${bitCells(bits,styles)}</div>
+            <div style="display:flex;gap:2px;margin-top:1px">${labels}</div>
+          </div>
+        </div>`;
+    }
+
+    function fmla(txt, ok) {
+      return `<div class="formula ${ok?'ok':'bad'}" style="font-size:10px;padding:1px 5px">${txt}</div>`;
+    }
+    function synTxt() {
+      if (syn===0) return `<div style="font-size:10px;background:var(--bg3);padding:3px 5px;border-radius:3px;color:var(--green)">(${s3v}${s2}${s1})₂=0 → OK ✓</div>`;
+      return `<div style="font-size:10px;background:var(--bg3);padding:3px 5px;border-radius:3px;color:var(--red)">(${s3v}${s2}${s1})₂=${syn} → pos ${syn}</div>`;
+    }
+
+    const txStyles=['parity','parity','data','parity','data','data','data'];
+    const rxStyles=rx.map((b,i)=>b!==cw[i]?'error':(i===0||i===1||i===3?'parity':'data'));
+    const corStyles=cor.map((b,i)=>i===syn-1&&syn!==0?'fixed':(i===0||i===1||i===3?'parity':'data'));
+
+    const card = document.createElement('div');
+    card.className = 'nibble-card';
+    card.innerHTML = `
+      <div class="nibble-card-hdr" style="background:${hdrColor};color:var(--bg)">
+        <span>#${chIdx} '${nd.ch}' ASC=${nd.ch.charCodeAt(0)}</span>
+        <span>${nibLabel}</span>
+      </div>
+      <div class="nibble-card-body">
+        <div class="card-section-title" style="color:var(--teal)">① DONNÉES</div>
+        <div class="bit-row-sm">
+          <span class="bit-row-sm-label">d1 d2 d3 d4 :</span>
+          <div style="display:flex;gap:2px">${bitCells(data4,['data','data','data','data'])}</div>
+          <span style="font-size:11px;font-weight:bold;color:var(--teal);margin-left:6px">= ${bitsToDecimal(data4)}</span>
+        </div>
+        <hr class="card-divider">
+        <div class="card-section-title" style="color:var(--purple)">② ENCODAGE</div>
+        ${fmla(`p₁=${d1}⊕${d2}⊕${d4}=${p1}`,p1===0)}
+        ${fmla(`p₂=${d1}⊕${d3}⊕${d4}=${p2}`,p2===0)}
+        ${fmla(`p₃=${d2}⊕${d3}⊕${d4}=${p3}`,p3===0)}
+        ${bitRowSm('Émis x(7) :',cw,txStyles)}
+        <hr class="card-divider">
+        <div class="card-section-title" style="color:var(--amber)">③ CANAL</div>
+        ${bitRowSm('Reçu y(7) :',rx,rxStyles)}
+        <div style="font-size:10px;color:${errBits.length?'var(--red)':'var(--green)'}">
+          ${errBits.length ? '⚠ pos '+JSON.stringify(errBits) : '✓ Sans erreur'}
+        </div>
+        <hr class="card-divider">
+        <div class="card-section-title" style="color:var(--red)">④ SYNDROME</div>
+        ${fmla(`s₁=y₁⊕y₃⊕y₅⊕y₇=${rx[0]}⊕${rx[2]}⊕${rx[4]}⊕${rx[6]}=${s1}`,s1===0)}
+        ${fmla(`s₂=y₂⊕y₃⊕y₆⊕y₇=${rx[1]}⊕${rx[2]}⊕${rx[5]}⊕${rx[6]}=${s2}`,s2===0)}
+        ${fmla(`s₃=y₄⊕y₅⊕y₆⊕y₇=${rx[3]}⊕${rx[4]}⊕${rx[5]}⊕${rx[6]}=${s3v}`,s3v===0)}
+        ${synTxt()}
+        <hr class="card-divider">
+        <div class="card-section-title" style="color:var(--green)">⑤ CORRECTION</div>
+        ${bitRowSm('Corrigé ĉ :',cor,corStyles)}
+        ${syn!==0?`<div style="font-size:10px;color:var(--green)">Bit ${syn}: ${rx[syn-1]}→${cor[syn-1]} ✓</div>`:''}
+        <div class="bit-row-sm">
+          <span class="bit-row-sm-label">Données d̂ :</span>
+          <div style="display:flex;gap:2px">${bitCells(nd.data4Decoded,['data','data','data','data'])}</div>
+          <span style="font-size:11px;font-weight:bold;color:var(--teal);margin-left:6px">= ${bitsToDecimal(nd.data4Decoded)}</span>
+        </div>
+        <hr class="card-divider">
+        <div style="text-align:center;font-size:11px;font-weight:bold;color:${nib_ok?'var(--green)':'var(--red)'}">
+          ${nib_ok?'✓ INTACT':'✗ ALTÉRÉ'}
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── Tab switching ────────────────────────────────────────
+function showTab(n) {
+  el('tab1').classList.toggle('visible', n===1);
+  el('tab2').classList.toggle('visible', n===2);
+  el('btn-tab1').className = 'tab-btn ' + (n===1 ? 'active'   : 'inactive');
+  el('btn-tab2').className = 'tab-btn ' + (n===2 ? 'active2'  : 'inactive');
+}
+
+// ─── Init ─────────────────────────────────────────────────
+runSimulation();
+</script>
+</body>
+</html>
