@@ -3,261 +3,361 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulation Hamming(7,4) — Liaison Satellite</title>
+<title>Hamming(7,4) — Liaison Satellite</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap');
 
   :root {
-    --bg:        #0f0f1a;
-    --bg2:       #16162a;
-    --bg3:       #1e1e35;
-    --card:      #1a1a2e;
-    --border:    #2a2a4a;
-    --accent:    #6c63ff;
-    --accent2:   #00d4aa;
-    --amber:     #ffa94d;
-    --text:      #e8e8f0;
-    --text2:     #9898b8;
-    --text3:     #5a5a7a;
-    --green:     #51cf66;
-    --red:       #ff6b6b;
-    --purple:    #845ef7;
-    --teal:      #20c997;
-    --bit-parity-bg: #2d1f6e;
-    --bit-parity-fg: #a78bfa;
-    --bit-data-bg:   #0f3d30;
-    --bit-data-fg:   #34d399;
-    --bit-error-bg:  #4a0e0e;
-    --bit-error-fg:  #f87171;
-    --bit-fixed-bg:  #0f3d1a;
-    --bit-fixed-fg:  #4ade80;
+    --bg:         #080c14;
+    --bg2:        #0d1220;
+    --bg3:        #111827;
+    --card:       #0e1525;
+    --border:     #1e2d45;
+    --border2:    #2a3f60;
+    --accent:     #38bdf8;
+    --accent2:    #34d399;
+    --amber:      #fbbf24;
+    --text:       #e2e8f0;
+    --text2:      #7a9ab8;
+    --text3:      #3d5470;
+    --green:      #4ade80;
+    --red:        #f87171;
+    --purple:     #a78bfa;
+    --teal:       #2dd4bf;
+    --orange:     #fb923c;
+    --dp-bg:      #1a1033;
+    --dp-fg:      #c4b5fd;
+    --dd-bg:      #0c2e25;
+    --dd-fg:      #6ee7b7;
+    --de-bg:      #3b0f0f;
+    --de-fg:      #fca5a5;
+    --df-bg:      #0a2e15;
+    --df-fg:      #86efac;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Rajdhani', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    font-size: 14px;
+  }
+
+  /* ── Scanline overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none; z-index: 1000;
   }
 
   /* ── Header ── */
   .app-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 20px;
-    border-bottom: 1px solid var(--accent);
+    background: linear-gradient(90deg, rgba(56,189,248,0.08) 0%, transparent 60%);
+    border-bottom: 1px solid var(--border2);
+    position: relative;
   }
+  .app-header::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0;
+    width: 40%; height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  .header-left { display: flex; flex-direction: column; }
   .app-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 15px; font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700;
     color: var(--accent);
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
-  .app-sub { font-size: 11px; color: var(--text3); }
+  .app-sub { font-size: 11px; color: var(--text3); font-family: 'Space Mono', monospace; margin-top: 2px; }
+  .header-badge {
+    background: rgba(56,189,248,0.1);
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 10px; font-family: 'Space Mono', monospace;
+    color: var(--accent); letter-spacing: 1px;
+  }
 
   /* ── Tabs ── */
-  .tab-bar { display: flex; gap: 6px; padding: 8px 20px; background: var(--bg); }
-  .tab-btn {
-    padding: 6px 16px; border: none; border-radius: 4px;
-    font-family: 'Share Tech Mono', monospace; font-size: 12px;
-    cursor: pointer; transition: all .2s;
+  .tab-bar {
+    display: flex; gap: 2px; padding: 0 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
   }
-  .tab-btn.active  { background: var(--accent);  color: #fff; }
-  .tab-btn.active2 { background: var(--accent2); color: var(--bg); }
-  .tab-btn.inactive { background: var(--bg3); color: var(--text2); }
+  .tab-btn {
+    padding: 10px 20px; border: none; border-bottom: 2px solid transparent;
+    background: transparent;
+    font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; letter-spacing: 1px;
+    color: var(--text3); text-transform: uppercase;
+  }
+  .tab-btn:hover { color: var(--text2); }
+  .tab-btn.active  { color: var(--accent);  border-bottom-color: var(--accent); }
+  .tab-btn.active2 { color: var(--accent2); border-bottom-color: var(--accent2); }
 
   /* ── Main layout ── */
-  .tab-content { display: none; padding: 0 16px 16px; }
+  .tab-content { display: none; padding: 14px 16px 20px; }
   .tab-content.visible { display: block; }
-
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
   /* ── Section ── */
   .section {
     background: var(--card);
-    border-radius: 6px; border: 1px solid var(--border);
-    margin-bottom: 8px; overflow: hidden;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-top: 2px solid transparent;
+    margin-bottom: 10px; overflow: hidden;
+    transition: border-color .3s;
   }
   .section-hdr {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px;
-    font-size: 11px; font-weight: bold;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
   }
-  .section-body { padding: 8px 10px; }
+  .section-hdr .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; opacity: 0.8;
+  }
+  .section-body { padding: 10px 12px; }
 
   /* ── Bit cells ── */
-  .bit-row { display: flex; align-items: center; gap: 4px; margin: 4px 0; flex-wrap: wrap; }
-  .bit-row-label { font-size: 11px; color: var(--text2); min-width: 150px; }
+  .bit-row { display: flex; align-items: center; gap: 5px; margin: 5px 0; flex-wrap: wrap; }
+  .bit-row-label { font-size: 11px; color: var(--text2); min-width: 148px; font-family: 'Space Mono', monospace; }
 
   .bit-cell {
-    width: 44px; height: 44px; border-radius: 6px;
+    width: 42px; height: 42px; border-radius: 4px;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700;
-    border: 1.5px solid; transition: all .3s;
-    position: relative;
+    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
+    border: 1px solid; transition: all .25s; position: relative;
+    cursor: default;
   }
-  .bit-cell.data    { background: var(--bit-data-bg);   color: var(--bit-data-fg);   border-color: var(--teal); }
-  .bit-cell.parity  { background: var(--bit-parity-bg); color: var(--bit-parity-fg); border-color: var(--purple); }
-  .bit-cell.error   { background: var(--bit-error-bg);  color: var(--bit-error-fg);  border-color: var(--red); animation: pulse-err .6s ease infinite alternate; }
-  .bit-cell.fixed   { background: var(--bit-fixed-bg);  color: var(--bit-fixed-fg);  border-color: var(--green); animation: pulse-fix .6s ease infinite alternate; }
-  .bit-cell.neutral { background: var(--bg3);           color: var(--text2);          border-color: var(--border); }
+  .bit-cell.data    { background: var(--dd-bg); color: var(--dd-fg); border-color: rgba(45,212,191,0.4); }
+  .bit-cell.parity  { background: var(--dp-bg); color: var(--dp-fg); border-color: rgba(167,139,250,0.4); }
+  .bit-cell.error   { background: var(--de-bg); color: var(--de-fg); border-color: var(--red); animation: pulse-err .7s ease infinite alternate; }
+  .bit-cell.fixed   { background: var(--df-bg); color: var(--df-fg); border-color: var(--green); animation: pulse-fix .7s ease infinite alternate; }
+  .bit-cell.neutral { background: var(--bg3);   color: var(--text3); border-color: var(--border); }
 
-  @keyframes pulse-err { from { box-shadow: 0 0 0 0 rgba(255,107,107,.3); } to { box-shadow: 0 0 8px 4px rgba(255,107,107,.5); } }
-  @keyframes pulse-fix { from { box-shadow: 0 0 0 0 rgba(74,222,128,.3); } to { box-shadow: 0 0 8px 4px rgba(74,222,128,.5); } }
+  @keyframes pulse-err { from { box-shadow: 0 0 0 0 rgba(248,113,113,.2); } to { box-shadow: 0 0 10px 3px rgba(248,113,113,.5); } }
+  @keyframes pulse-fix { from { box-shadow: 0 0 0 0 rgba(74,222,128,.2); }  to { box-shadow: 0 0 10px 3px rgba(74,222,128,.5); } }
+  @keyframes flip-in   { from { transform: rotateY(90deg) scale(0.8); opacity: 0; } to { transform: rotateY(0) scale(1); opacity: 1; } }
+  .bit-cell.animating { animation: flip-in .3s ease-out; }
 
-  .bit-label-row { display: flex; gap: 4px; font-size: 9px; margin-bottom: 2px; margin-left: 154px; }
-  .bit-lbl { width: 44px; text-align: center; }
-  .bit-lbl.p { color: var(--bit-parity-fg); }
-  .bit-lbl.d { color: var(--bit-data-fg); }
+  .bit-label-row { display: flex; gap: 5px; font-size: 9px; margin-bottom: 2px; margin-left: 153px; font-family: 'Space Mono', monospace; }
+  .bit-lbl { width: 42px; text-align: center; }
+  .bit-lbl.p { color: var(--dp-fg); }
+  .bit-lbl.d { color: var(--dd-fg); }
 
-  /* ── Formula lines ── */
-  .formula { font-size: 11px; padding: 2px 6px; background: var(--bg3); border-radius: 3px; margin: 2px 0; }
-  .formula.ok  { color: var(--green); }
-  .formula.bad { color: var(--red); }
-  .formula.neutral { color: var(--text2); }
+  /* ── Formulas ── */
+  .formula {
+    font-size: 11px; padding: 3px 8px;
+    background: var(--bg2); border-radius: 3px; margin: 2px 0;
+    border-left: 2px solid;
+    font-family: 'Space Mono', monospace;
+  }
+  .formula.ok  { color: var(--green); border-color: var(--green); }
+  .formula.bad { color: var(--red);   border-color: var(--red); }
+  .formula.neutral { color: var(--text2); border-color: var(--border); }
 
-  /* ── Input / Controls ── */
+  /* ── Inputs / Controls ── */
   .ctrl-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
   input[type=text], input[type=number] {
-    background: var(--bg3); color: var(--accent2);
-    border: 1px solid var(--border); border-radius: 4px;
-    padding: 5px 8px; font-family: 'Share Tech Mono', monospace; font-size: 13px;
-    outline: none; width: 100px;
+    background: var(--bg2); color: var(--accent2);
+    border: 1px solid var(--border2); border-radius: 3px;
+    padding: 5px 9px;
+    font-family: 'Space Mono', monospace; font-size: 12px;
+    outline: none; width: 100px; transition: border-color .2s;
   }
   input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); }
 
   .btn {
-    padding: 6px 14px; border: none; border-radius: 4px;
-    font-family: 'Share Tech Mono', monospace; font-size: 11px;
-    cursor: pointer; transition: all .15s;
+    padding: 6px 14px; border: 1px solid transparent; border-radius: 3px;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all .15s; letter-spacing: 1px; text-transform: uppercase;
   }
-  .btn:hover { filter: brightness(1.15); }
-  .btn-accent  { background: var(--accent);  color: #fff; }
-  .btn-accent2 { background: var(--accent2); color: var(--bg); }
-  .btn-amber   { background: var(--amber);   color: var(--bg); }
-  .btn-dim     { background: var(--bg3);     color: var(--text2); }
+  .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-accent  { background: rgba(56,189,248,0.15);  color: var(--accent);  border-color: rgba(56,189,248,0.4); }
+  .btn-accent2 { background: rgba(52,211,153,0.15);  color: var(--accent2); border-color: rgba(52,211,153,0.4); }
+  .btn-amber   { background: rgba(251,191,36,0.15);  color: var(--amber);   border-color: rgba(251,191,36,0.4); }
+  .btn-dim     { background: var(--bg3); color: var(--text2); border-color: var(--border); }
+  .btn-orange  { background: rgba(251,146,60,0.15);  color: var(--orange);  border-color: rgba(251,146,60,0.4); }
 
   input[type=range] {
-    accent-color: var(--accent2);
-    background: transparent; height: 4px; cursor: pointer;
-    width: 180px;
+    accent-color: var(--accent);
+    height: 4px; cursor: pointer; width: 160px;
   }
 
   /* ── Spinbox ── */
-  .spinbox-wrap { display: flex; align-items: center; gap: 0; }
-  .spinbox-wrap input { width: 52px; text-align: center; color: var(--red); }
+  .spinbox-wrap { display: flex; align-items: center; }
+  .spinbox-wrap input { width: 50px; text-align: center; color: var(--red); border-radius: 0; }
   .spinbox-wrap button {
-    background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
-    width: 22px; height: 34px; cursor: pointer; font-size: 14px;
+    background: var(--bg3); color: var(--text2); border: 1px solid var(--border2);
+    width: 24px; height: 34px; cursor: pointer; font-size: 15px; line-height: 1;
     transition: background .1s;
   }
-  .spinbox-wrap button:hover { background: var(--border); }
-  .spinbox-wrap button:first-child { border-radius: 4px 0 0 4px; }
-  .spinbox-wrap button:last-child  { border-radius: 0 4px 4px 0; }
+  .spinbox-wrap button:hover { background: var(--border); color: var(--text); }
+  .spinbox-wrap button:first-child { border-radius: 3px 0 0 3px; border-right: none; }
+  .spinbox-wrap button:last-child  { border-radius: 0 3px 3px 0; border-left: none; }
 
   /* ── Stats ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .stat-card  { background: var(--bg3); border-radius: 4px; padding: 8px 10px; text-align: center; }
-  .stat-num   { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; }
-  .stat-lbl   { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-card  { background: var(--bg2); border-radius: 3px; padding: 8px 10px; text-align: center; border: 1px solid var(--border); }
+  .stat-num   { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; }
+  .stat-lbl   { font-size: 10px; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
 
   /* ── Result big ── */
   .result-big {
-    font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
-    text-align: center; padding: 12px 0 4px;
+    font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700;
+    text-align: center; padding: 12px 0 4px; letter-spacing: 1px;
     transition: color .3s;
   }
-  .result-row { display: flex; justify-content: center; gap: 20px; padding-bottom: 8px; font-size: 12px; }
+  .result-row { display: flex; justify-content: center; gap: 24px; padding-bottom: 8px; font-size: 11px; font-family: 'Space Mono', monospace; }
 
   /* ── Channel params ── */
-  .channel-params { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0; }
-  .channel-param { text-align: center; }
-  .channel-param .cp-val { font-size: 12px; font-weight: bold; }
-  .channel-param .cp-lbl { font-size: 10px; color: var(--text3); }
+  .channel-params { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 0; }
+  .channel-param { text-align: center; padding: 4px 8px; background: var(--bg2); border-radius: 3px; border: 1px solid var(--border); }
+  .channel-param .cp-val { font-size: 12px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .channel-param .cp-lbl { font-size: 9px; color: var(--text3); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* ── Info label ── */
-  .info-lbl { font-size: 11px; color: var(--amber); margin: 2px 0; min-height: 16px; }
-  .error-lbl { font-size: 11px; margin: 2px 0; min-height: 16px; }
+  /* ── Info / Error labels ── */
+  .info-lbl  { font-size: 11px; color: var(--amber); margin: 3px 0; min-height: 16px; font-family: 'Space Mono', monospace; }
+  .error-lbl { font-size: 11px; margin: 3px 0; min-height: 16px; font-family: 'Space Mono', monospace; }
 
-  /* ── Syndrome result ── */
-  .syn-result { background: var(--bg3); border-radius: 4px; padding: 6px 8px; font-size: 12px; margin-top: 4px; }
+  .syn-result { background: var(--bg2); border-radius: 3px; padding: 7px 10px; font-size: 12px; margin-top: 6px; font-family: 'Space Mono', monospace; border: 1px solid var(--border); }
 
   /* ── Speed radio ── */
-  .radio-group { display: flex; gap: 12px; align-items: center; }
-  .radio-group label { font-size: 11px; color: var(--text2); cursor: pointer; display: flex; gap: 4px; align-items: center; }
+  .radio-group { display: flex; gap: 14px; align-items: center; }
+  .radio-group label { font-size: 12px; color: var(--text2); cursor: pointer; display: flex; gap: 5px; align-items: center; font-weight: 600; }
   .radio-group input[type=radio] { accent-color: var(--accent); }
 
-  /* ── Text tab ── */
-  .txt-summary {
-    background: var(--bg3); border-radius: 6px;
-    display: flex; align-items: center; gap: 20px;
-    padding: 8px 16px; margin-bottom: 8px;
+  .decimal-lbl { font-size: 12px; font-weight: 700; color: var(--teal); margin-left: 6px; font-family: 'Space Mono', monospace; }
+
+  /* ═══ TAB 2 ═══ */
+
+  /* ── BER / Eb panel ── */
+  .ber-panel {
+    background: var(--bg2); border-radius: 4px; border: 1px solid var(--border2);
+    padding: 10px 14px; margin-bottom: 10px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   }
-  .txt-result-big { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; }
+  .ber-panel-col { display: flex; flex-direction: column; gap: 6px; }
+  .ber-panel-title { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); font-weight: 700; margin-bottom: 2px; }
+
+  .ebn0-row { display: flex; align-items: center; gap: 10px; }
+  .ebn0-row input[type=range] { flex: 1; width: auto; }
+  .ebn0-val {
+    font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700;
+    color: var(--amber); min-width: 60px; text-align: right;
+  }
+
+  .ber-display {
+    background: var(--bg3); border-radius: 3px; padding: 8px 12px;
+    border: 1px solid var(--border); text-align: center;
+  }
+  .ber-val-big {
+    font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700;
+    color: var(--orange);
+  }
+  .ber-formula { font-size: 10px; color: var(--text3); margin-top: 2px; font-family: 'Space Mono', monospace; }
+
+  .ber-quality { font-size: 11px; font-weight: 700; margin-top: 4px; letter-spacing: 0.5px; }
+
+  /* ── Text input area ── */
+  .txt-input-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  #txt-input {
+    font-family: 'Space Mono', monospace; font-size: 14px;
+    width: 100%; background: var(--bg2);
+    color: var(--accent2); border: 1px solid var(--border2); border-radius: 3px;
+    padding: 8px 12px; outline: none; transition: border-color .2s;
+    letter-spacing: 1px;
+  }
+  #txt-input:focus { border-color: var(--accent); }
+
+  /* ── Summary banner ── */
+  .txt-summary {
+    background: var(--bg2);
+    border-radius: 4px; border: 1px solid var(--border);
+    display: none; align-items: center; gap: 24px;
+    padding: 10px 16px; margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .txt-summary.show { display: flex; }
+  .txt-result-big {
+    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; letter-spacing: 1px;
+  }
+
+  /* ── Nibble cards ── */
+  .cards-scroll { max-height: 58vh; overflow-y: auto; padding-right: 4px; }
+  .cards-scroll::-webkit-scrollbar { width: 5px; }
+  .cards-scroll::-webkit-scrollbar-track { background: var(--bg2); }
+  .cards-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
   .cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
     gap: 8px;
   }
   .nibble-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
     overflow: hidden;
   }
   .nibble-card-hdr {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 4px 8px; font-size: 11px; font-weight: bold;
+    padding: 5px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    font-family: 'Space Mono', monospace;
   }
-  .nibble-card-body { padding: 6px 8px; }
-  .card-section-title { font-size: 10px; font-weight: bold; margin: 4px 0 2px; }
+  .nibble-card-body { padding: 7px 9px; }
+  .card-section-title {
+    font-size: 9px; font-weight: 700; margin: 4px 0 2px; letter-spacing: 1px; text-transform: uppercase;
+  }
   .card-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
 
-  /* Small bit cell for text tab */
   .bit-cell-sm {
-    width: 34px; height: 34px; border-radius: 5px;
+    width: 32px; height: 32px; border-radius: 3px;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700;
-    border: 1.5px solid; transition: all .2s;
+    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+    border: 1px solid; transition: all .2s;
   }
-  .bit-cell-sm.data    { background: var(--bit-data-bg);   color: var(--bit-data-fg);   border-color: var(--teal); }
-  .bit-cell-sm.parity  { background: var(--bit-parity-bg); color: var(--bit-parity-fg); border-color: var(--purple); }
-  .bit-cell-sm.error   { background: var(--bit-error-bg);  color: var(--bit-error-fg);  border-color: var(--red); }
-  .bit-cell-sm.fixed   { background: var(--bit-fixed-bg);  color: var(--bit-fixed-fg);  border-color: var(--green); }
-  .bit-cell-sm.neutral { background: var(--bg3);           color: var(--text2);          border-color: var(--border); }
+  .bit-cell-sm.data    { background: var(--dd-bg); color: var(--dd-fg); border-color: rgba(45,212,191,0.4); }
+  .bit-cell-sm.parity  { background: var(--dp-bg); color: var(--dp-fg); border-color: rgba(167,139,250,0.4); }
+  .bit-cell-sm.error   { background: var(--de-bg); color: var(--de-fg); border-color: var(--red); }
+  .bit-cell-sm.fixed   { background: var(--df-bg); color: var(--df-fg); border-color: var(--green); }
+  .bit-cell-sm.neutral { background: var(--bg3);   color: var(--text3); border-color: var(--border); }
 
-  .bit-row-sm { display: flex; align-items: center; gap: 2px; margin: 2px 0; flex-wrap: wrap; }
-  .bit-row-sm-label { font-size: 10px; color: var(--text3); min-width: 100px; }
-
-  .decimal-lbl { font-size: 13px; font-weight: bold; color: var(--teal); margin-left: 6px; }
-
-  /* Scrollable cards zone */
-  .cards-scroll { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
-  .cards-scroll::-webkit-scrollbar { width: 6px; }
-  .cards-scroll::-webkit-scrollbar-track { background: var(--bg2); }
-  .cards-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* Scan animation for bit cells */
-  @keyframes flip-in {
-    from { transform: rotateY(90deg); opacity: 0; }
-    to   { transform: rotateY(0deg);  opacity: 1; }
-  }
-  .bit-cell.animating, .bit-cell-sm.animating { animation: flip-in .3s ease-out; }
+  .bit-row-sm { display: flex; align-items: center; gap: 2px; margin: 3px 0; flex-wrap: wrap; }
+  .bit-row-sm-label { font-size: 9px; color: var(--text3); min-width: 90px; font-family: 'Space Mono', monospace; }
 </style>
 </head>
 <body>
 
-<!-- Header -->
 <div class="app-header">
-  <span class="app-title">◈ HAMMING(7,4) SIMULATION PAR SATELLITE</span>
-  <span class="app-sub">Eutelsat 5W · 14.25 GHz · 35 786 km</span>
+  <div class="header-left">
+    <span class="app-title">◈ Hamming(7,4) — Liaison Satellite</span>
+    <span class="app-sub">Eutelsat 5W · 14.25 GHz · 35 786 km · BPSK</span>
+  </div>
+  <span class="header-badge">FEC · CORRECTION D'ERREURS</span>
 </div>
 
-<!-- Tab bar -->
 <div class="tab-bar">
-  <button class="tab-btn active"   id="btn-tab1" onclick="showTab(1)">⬡ BIT UNIQUE</button>
-  <button class="tab-btn inactive" id="btn-tab2" onclick="showTab(2)">✦ TRANSMISSION TEXTE</button>
+  <button class="tab-btn active"   id="btn-tab1" onclick="showTab(1)">⬡ &nbsp;BIT UNIQUE</button>
+  <button class="tab-btn inactive" id="btn-tab2" onclick="showTab(2)">✦ &nbsp;TRANSMISSION TEXTE</button>
 </div>
 
 <!-- ═══════════════════════ TAB 1 ═══════════════════════ -->
@@ -267,24 +367,23 @@
     <!-- LEFT COLUMN -->
     <div>
 
-      <!-- DONNÉES SOURCE -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--teal)">▶ &nbsp;DONNÉES SOURCE</div>
+      <div class="section" style="border-top-color:var(--teal)">
+        <div class="section-hdr" style="color:var(--teal)"><span class="dot"></span>DONNÉES SOURCE</div>
         <div class="section-body">
           <div class="ctrl-row">
-            <span style="font-size:12px;color:var(--text2)">Valeur :</span>
-            <input type="text" id="input-val" value="1011" maxlength="10" onkeydown="if(event.key==='Enter')onInputChange()">
+            <span style="font-size:12px;color:var(--text2);font-weight:600">Valeur :</span>
+            <input type="text" id="input-val" value="1011" maxlength="10"
+              onkeydown="if(event.key==='Enter')onInputChange()"
+              style="width:90px">
             <button class="btn btn-accent" onclick="onInputChange()">SIMULER →</button>
           </div>
           <div class="info-lbl" id="input-info"></div>
           <div class="bit-label-row">
-            <span class="bit-lbl d">d₁</span>
-            <span class="bit-lbl d">d₂</span>
-            <span class="bit-lbl d">d₃</span>
-            <span class="bit-lbl d">d₄</span>
+            <span class="bit-lbl d">d₁</span><span class="bit-lbl d">d₂</span>
+            <span class="bit-lbl d">d₃</span><span class="bit-lbl d">d₄</span>
           </div>
           <div class="bit-row">
-            <span class="bit-row-label">Bits d1 d2 d3 d4 :</span>
+            <span class="bit-row-label">Bits d₁ d₂ d₃ d₄ :</span>
             <div class="bit-cell data" id="dc0">1</div>
             <div class="bit-cell data" id="dc1">0</div>
             <div class="bit-cell data" id="dc2">1</div>
@@ -294,19 +393,14 @@
         </div>
       </div>
 
-      <!-- ENCODAGE -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--purple)">▶ &nbsp;ENCODAGE HAMMING(7,4)</div>
+      <div class="section" style="border-top-color:var(--purple)">
+        <div class="section-hdr" style="color:var(--purple)"><span class="dot"></span>ENCODAGE HAMMING(7,4)</div>
         <div class="section-body">
           <div id="parity-formulas"></div>
-          <div class="bit-label-row" style="margin-left:150px">
-            <span class="bit-lbl p">p₁</span>
-            <span class="bit-lbl p">p₂</span>
-            <span class="bit-lbl d">d₁</span>
-            <span class="bit-lbl p">p₃</span>
-            <span class="bit-lbl d">d₂</span>
-            <span class="bit-lbl d">d₃</span>
-            <span class="bit-lbl d">d₄</span>
+          <div class="bit-label-row">
+            <span class="bit-lbl p">p₁</span><span class="bit-lbl p">p₂</span>
+            <span class="bit-lbl d">d₁</span><span class="bit-lbl p">p₃</span>
+            <span class="bit-lbl d">d₂</span><span class="bit-lbl d">d₃</span><span class="bit-lbl d">d₄</span>
           </div>
           <div class="bit-row">
             <span class="bit-row-label">Mot émis x(7) :</span>
@@ -318,32 +412,31 @@
             <div class="bit-cell data"   id="tx5">0</div>
             <div class="bit-cell data"   id="tx6">0</div>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">Rendement : 4/7 ≈ 57 %</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px;font-family:'Space Mono',monospace">Rendement R = 4/7 ≈ 57 %</div>
         </div>
       </div>
 
-      <!-- CANAL -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--amber)">▶ &nbsp;CANAL SATELLITE</div>
+      <div class="section" style="border-top-color:var(--amber)">
+        <div class="section-hdr" style="color:var(--amber)"><span class="dot"></span>CANAL SATELLITE</div>
         <div class="section-body">
           <div class="channel-params">
             <div class="channel-param"><div class="cp-lbl">Distance</div><div class="cp-val" style="color:var(--text)">35 786 km</div></div>
-            <div class="channel-param"><div class="cp-lbl">Fréquence</div><div class="cp-val" style="color:var(--text)">14,25 GHz (Ku)</div></div>
+            <div class="channel-param"><div class="cp-lbl">Fréquence</div><div class="cp-val" style="color:var(--text)">14,25 GHz</div></div>
             <div class="channel-param"><div class="cp-lbl">Délai</div><div class="cp-val" style="color:var(--amber)">≈ 119 ms</div></div>
             <div class="channel-param"><div class="cp-lbl">FSPL</div><div class="cp-val" style="color:var(--red)">≈ 206 dB</div></div>
             <div class="channel-param"><div class="cp-lbl">Eb/N₀</div><div class="cp-val" style="color:var(--green)">6 dB</div></div>
           </div>
-          <div class="ctrl-row" style="margin-top:6px">
-            <span style="font-size:12px;color:var(--text2)">Simuler erreur pos. :</span>
+          <div class="ctrl-row" style="margin-top:8px">
+            <span style="font-size:12px;color:var(--text2);font-weight:600">Erreur pos. :</span>
             <div class="spinbox-wrap">
               <button onclick="changeErr(-1)">−</button>
               <input type="number" id="err-pos" value="0" min="0" max="7" oninput="clampErr();onInputChange()">
               <button onclick="changeErr(+1)">+</button>
             </div>
             <span style="font-size:11px;color:var(--text3)">(0 = aucune)</span>
-            <button class="btn btn-dim" style="color:var(--amber)" onclick="randomError()">Aléatoire</button>
+            <button class="btn btn-dim" onclick="randomError()" style="color:var(--amber)">⚡ Aléatoire</button>
           </div>
-          <div class="bit-row" style="margin-top:6px">
+          <div class="bit-row" style="margin-top:8px">
             <span class="bit-row-label">Mot reçu y(7) :</span>
             <div class="bit-cell parity" id="rx0">0</div>
             <div class="bit-cell parity" id="rx1">0</div>
@@ -357,14 +450,13 @@
         </div>
       </div>
 
-    </div><!-- end left col -->
+    </div><!-- end left -->
 
     <!-- RIGHT COLUMN -->
     <div>
 
-      <!-- SYNDROME -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--red)">▶ &nbsp;CALCUL DU SYNDROME</div>
+      <div class="section" style="border-top-color:var(--red)">
+        <div class="section-hdr" style="color:var(--red)"><span class="dot"></span>CALCUL DU SYNDROME</div>
         <div class="section-body">
           <div id="syn-formulas"></div>
           <div class="syn-result" id="syn-result" style="color:var(--green)">
@@ -373,9 +465,8 @@
         </div>
       </div>
 
-      <!-- CORRECTION -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--green)">▶ &nbsp;CORRECTION &amp; EXTRACTION</div>
+      <div class="section" style="border-top-color:var(--green)">
+        <div class="section-hdr" style="color:var(--green)"><span class="dot"></span>CORRECTION &amp; EXTRACTION</div>
         <div class="section-body">
           <div class="bit-row">
             <span class="bit-row-label">Mot corrigé ĉ :</span>
@@ -387,39 +478,37 @@
             <div class="bit-cell data"   id="cr5">0</div>
             <div class="bit-cell data"   id="cr6">0</div>
           </div>
-          <div class="bit-row">
-            <span class="bit-row-label">Données extraites :</span>
+          <div class="error-lbl" id="corr-lbl" style="color:var(--text3)"></div>
+          <div class="bit-row" style="margin-top:6px">
+            <span class="bit-row-label">Données d̂ :</span>
             <div class="bit-cell data" id="out0">0</div>
             <div class="bit-cell data" id="out1">0</div>
             <div class="bit-cell data" id="out2">0</div>
             <div class="bit-cell data" id="out3">0</div>
           </div>
-          <div class="error-lbl" id="corr-lbl" style="color:var(--text3)"></div>
         </div>
       </div>
 
-      <!-- RÉSULTAT -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--accent2)">▶ &nbsp;RÉSULTAT FINAL</div>
-        <div class="section-body" style="background:var(--bg3);border-radius:4px;padding:8px">
+      <div class="section" style="border-top-color:var(--accent2)">
+        <div class="section-hdr" style="color:var(--accent2)"><span class="dot"></span>RÉSULTAT FINAL</div>
+        <div class="section-body" style="background:rgba(0,0,0,0.2);border-radius:3px;padding:10px">
           <div class="result-big" id="result-big" style="color:var(--green)">✓ MESSAGE INTACT</div>
           <div class="result-row">
-            <span id="orig-lbl" style="color:var(--text2)">Original    : 1011</span>
+            <span id="orig-lbl"  style="color:var(--text2)">Original    : 1011</span>
             <span id="recon-lbl" style="color:var(--accent2)">Reconstruit : 1011</span>
           </div>
         </div>
       </div>
 
-      <!-- CONTRÔLES -->
-      <div class="section">
-        <div class="section-hdr" style="color:var(--accent)">▶ &nbsp;CONTRÔLES</div>
+      <div class="section" style="border-top-color:var(--accent)">
+        <div class="section-hdr" style="color:var(--accent)"><span class="dot"></span>CONTRÔLES</div>
         <div class="section-body">
           <div class="ctrl-row">
-            <button class="btn btn-dim" onclick="resetSim()">⟳ RESET</button>
+            <button class="btn btn-dim"   onclick="resetSim()">⟳ RESET</button>
             <button class="btn btn-amber" onclick="randomDemo()">⚡ ALÉATOIRE</button>
           </div>
-          <div class="ctrl-row" style="margin-top:4px">
-            <span style="font-size:11px;color:var(--text2)">Vitesse :</span>
+          <div class="ctrl-row" style="margin-top:6px">
+            <span style="font-size:11px;color:var(--text2);font-weight:600">Vitesse :</span>
             <div class="radio-group">
               <label><input type="radio" name="speed" value="900" onchange="setSpeed(900)"> Lente</label>
               <label><input type="radio" name="speed" value="500" onchange="setSpeed(500)" checked> Normale</label>
@@ -429,9 +518,8 @@
         </div>
       </div>
 
-      <!-- STATS -->
       <div class="section">
-        <div class="section-hdr" style="color:var(--text3)">▶ &nbsp;STATISTIQUES DE SESSION</div>
+        <div class="section-hdr" style="color:var(--text3)"><span class="dot"></span>STATISTIQUES SESSION</div>
         <div class="section-body">
           <div class="stats-grid">
             <div class="stat-card">
@@ -450,43 +538,78 @@
         </div>
       </div>
 
-    </div><!-- end right col -->
-  </div><!-- end two-col -->
+    </div><!-- end right -->
+  </div>
 </div><!-- end tab1 -->
 
 <!-- ═══════════════════════ TAB 2 ═══════════════════════ -->
 <div class="tab-content" id="tab2">
 
-  <!-- Input section -->
-  <div class="section">
-    <div class="section-hdr" style="color:var(--teal)">▶ &nbsp;MESSAGE TEXTE À TRANSMETTRE</div>
-    <div class="section-body">
-      <div class="ctrl-row">
-        <span style="font-size:12px;color:var(--text2)">Texte :</span>
-        <input type="text" id="txt-input" value="HELLO" style="width:220px" onkeydown="if(event.key==='Enter')runTextSim()">
-        <span style="font-size:12px;color:var(--text2)">BER :</span>
-        <input type="range" id="ber-slider" min="0" max="0.5" step="0.01" value="0.15" oninput="updateBerLabel()">
-        <span id="ber-label" style="font-size:12px;color:var(--amber)">15 %</span>
-        <button class="btn btn-accent2" onclick="runTextSim()">▶ TRANSMETTRE</button>
+  <!-- BER automatique via Eb/N0 -->
+  <div class="ber-panel">
+    <div class="ber-panel-col">
+      <div class="ber-panel-title">⚙ Paramètre canal — Eb/N₀</div>
+      <div class="ebn0-row">
+        <input type="range" id="ebn0-slider" min="0" max="12" step="0.5" value="4"
+          oninput="onEbn0Change()">
+        <span class="ebn0-val" id="ebn0-val">4,0 dB</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-top:2px">
+        Modulation BPSK — BER calculé automatiquement
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace">
+        Pe = ½ · erfc(√(Eb/N₀)) <span style="color:var(--border2)">(formule BPSK)</span>
+      </div>
+    </div>
+    <div class="ber-panel-col">
+      <div class="ber-panel-title">📡 BER résultant</div>
+      <div class="ber-display">
+        <div class="ber-val-big" id="ber-val-big">2.37×10⁻²</div>
+        <div class="ber-formula" id="ber-formula">Pe = ½·erfc(√(2.51)) = 0.0237</div>
+        <div class="ber-quality" id="ber-quality" style="color:var(--amber)">⚠ Canal bruité</div>
       </div>
     </div>
   </div>
 
-  <!-- Summary banner -->
-  <div class="txt-summary" id="txt-summary" style="display:none">
-    <div class="txt-result-big" id="txt-result-big">—</div>
-    <div id="txt-orig-lbl" style="font-size:12px;color:var(--text2)"></div>
-    <div id="txt-recon-lbl" style="font-size:12px"></div>
+  <!-- Message texte -->
+  <div class="section" style="border-top-color:var(--teal)">
+    <div class="section-hdr" style="color:var(--teal)"><span class="dot"></span>MESSAGE À TRANSMETTRE</div>
+    <div class="section-body">
+      <div class="txt-input-section">
+        <input type="text" id="txt-input" value="HELLO"
+          placeholder="Entrez votre texte…"
+          onkeydown="if(event.key==='Enter')runTextSim()">
+      </div>
+      <div class="ctrl-row" style="margin-top:6px">
+        <button class="btn btn-accent2" onclick="runTextSim()">▶ TRANSMETTRE</button>
+        <button class="btn btn-dim" onclick="el('txt-input').value='HELLO';runTextSim()">⟳ Exemple</button>
+        <span style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace" id="txt-info-lbl"></span>
+      </div>
+    </div>
   </div>
 
-  <!-- Cards zone -->
+  <!-- Résumé -->
+  <div class="txt-summary" id="txt-summary">
+    <div class="txt-result-big" id="txt-result-big">—</div>
+    <div>
+      <div id="txt-orig-lbl"  style="font-size:11px;color:var(--text2);font-family:'Space Mono',monospace"></div>
+      <div id="txt-recon-lbl" style="font-size:11px;font-family:'Space Mono',monospace;margin-top:3px"></div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">BER appliqué</div>
+      <div style="font-family:'Space Mono',monospace;font-size:14px;color:var(--orange)" id="txt-ber-applied">—</div>
+    </div>
+  </div>
+
+  <!-- Cards -->
   <div class="cards-scroll">
     <div class="cards-grid" id="cards-grid"></div>
   </div>
-</div>
+
+</div><!-- end tab2 -->
 
 <script>
-// ─── Hamming logic ───────────────────────────────────────
+// ─── Hamming logic ────────────────────────────────────────
 function encodeHamming(d) {
   const [d1,d2,d3,d4] = d;
   const p1 = d1^d2^d4, p2 = d1^d3^d4, p3 = d2^d3^d4;
@@ -498,10 +621,7 @@ function introduceError(cw, pos) {
   return r;
 }
 function computeSyndrome(y) {
-  const s1 = y[0]^y[2]^y[4]^y[6];
-  const s2 = y[1]^y[2]^y[5]^y[6];
-  const s3 = y[3]^y[4]^y[5]^y[6];
-  return [s1,s2,s3];
+  return [y[0]^y[2]^y[4]^y[6], y[1]^y[2]^y[5]^y[6], y[3]^y[4]^y[5]^y[6]];
 }
 function decodeHamming(rx) {
   const [s1,s2,s3] = computeSyndrome(rx);
@@ -537,20 +657,64 @@ function encodeText(text) {
   return res;
 }
 
+// ─── BER automatique (BPSK) ──────────────────────────────
+// erfc approximation (Horner)
+function erfc(x) {
+  if (x < 0) return 2 - erfc(-x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const poly = t*(0.254829592 + t*(-0.284496736 + t*(1.421413741 + t*(-1.453152027 + t*1.061405429))));
+  return poly * Math.exp(-x*x);
+}
+// BER BPSK : Pe = (1/2) * erfc( sqrt(Eb/N0) )
+function berFromEbn0dB(ebn0dB) {
+  const ebn0 = Math.pow(10, ebn0dB / 10);
+  return 0.5 * erfc(Math.sqrt(ebn0));
+}
+function formatBER(ber) {
+  if (ber >= 0.1) return ber.toFixed(3);
+  if (ber <= 0) return '< 10⁻¹⁵';
+  const exp = Math.floor(Math.log10(ber));
+  const mant = ber / Math.pow(10, exp);
+  const expStr = exp.toString().replace(/-(\d+)/, '-$1').split('').map((c,i)=> {
+    const sup = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+    return sup[c] || c;
+  }).join('');
+  return mant.toFixed(2) + '×10' + expStr;
+}
+
+let currentBER = 0.0237;
+
+function onEbn0Change() {
+  const ebn0dB = parseFloat(el('ebn0-slider').value);
+  el('ebn0-val').textContent = ebn0dB.toFixed(1).replace('.',',') + ' dB';
+  const ebn0 = Math.pow(10, ebn0dB/10);
+  currentBER = berFromEbn0dB(ebn0dB);
+
+  el('ber-val-big').textContent = formatBER(currentBER);
+  el('ber-formula').textContent = `Pe = ½·erfc(√(${ebn0.toFixed(2)})) = ${currentBER.toExponential(3)}`;
+
+  let quality, color;
+  if (currentBER < 1e-6)      { quality = '✓ Canal quasi-parfait';  color = 'var(--green)'; }
+  else if (currentBER < 1e-3) { quality = '◉ Bonne qualité';        color = 'var(--accent2)'; }
+  else if (currentBER < 0.05) { quality = '⚠ Canal bruité';         color = 'var(--amber)'; }
+  else                         { quality = '✗ Canal très dégradé';   color = 'var(--red)'; }
+  el('ber-quality').textContent = quality;
+  el('ber-quality').style.color = color;
+}
+
 // ─── State ───────────────────────────────────────────────
 let dataBits = [1,0,1,1];
 let stepDelay = 500;
 let stats = {total:0, errors:0, corrected:0};
-let animTimer = null;
 
 // ─── UI helpers ──────────────────────────────────────────
 function setCell(id, val, style) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = val;
-  el.className = 'bit-cell ' + style;
-  el.classList.add('animating');
-  setTimeout(() => el.classList.remove('animating'), 350);
+  const el2 = document.getElementById(id);
+  if (!el2) return;
+  el2.textContent = val;
+  el2.className = 'bit-cell ' + style;
+  el2.classList.add('animating');
+  setTimeout(() => el2.classList.remove('animating'), 350);
 }
 function setFormulas(containerId, lines) {
   const c = document.getElementById(containerId);
@@ -562,9 +726,8 @@ function el(id) { return document.getElementById(id); }
 // ─── Input parsing ───────────────────────────────────────
 function parseInput(val) {
   val = val.trim();
-  if (/^[01]{4}$/.test(val)) {
+  if (/^[01]{4}$/.test(val))
     return { bits: val.split('').map(Number), info: `Binaire : ${val} = ${parseInt(val,2)} décimal` };
-  }
   if (/^\d+$/.test(val) && +val>=0 && +val<=15) {
     const bits = decimalToBits4(+val);
     return { bits, info: `Décimal ${val} → binaire : ${bits.join('')}` };
@@ -580,7 +743,10 @@ function parseInput(val) {
 function onInputChange() {
   const val = el('input-val').value;
   const parsed = parseInput(val);
-  if (!parsed) { el('input-info').textContent = 'Format non reconnu (ex: 1011, 7, ou A)'; el('input-info').style.color='var(--red)'; return; }
+  if (!parsed) {
+    el('input-info').textContent = 'Format invalide (ex: 1011, 7 ou A)';
+    el('input-info').style.color = 'var(--red)'; return;
+  }
   el('input-info').textContent = parsed.info;
   el('input-info').style.color = 'var(--amber)';
   dataBits = parsed.bits;
@@ -588,50 +754,38 @@ function onInputChange() {
 }
 
 function changeErr(delta) {
-  const inp = el('err-pos');
-  let v = parseInt(inp.value)||0;
-  v = Math.max(0, Math.min(7, v+delta));
-  inp.value = v;
-  runSimulation();
+  const inp = el('err-pos'); let v = parseInt(inp.value)||0;
+  v = Math.max(0, Math.min(7, v+delta)); inp.value = v; runSimulation();
 }
 function clampErr() {
-  const inp = el('err-pos');
-  let v = parseInt(inp.value)||0;
+  const inp = el('err-pos'); let v = parseInt(inp.value)||0;
   inp.value = Math.max(0, Math.min(7, v));
 }
-function randomError() {
-  el('err-pos').value = Math.floor(Math.random()*7)+1;
-  runSimulation();
-}
+function randomError() { el('err-pos').value = Math.floor(Math.random()*7)+1; runSimulation(); }
 function randomDemo() {
   el('input-val').value = String(Math.floor(Math.random()*16));
   el('err-pos').value   = Math.floor(Math.random()*7)+1;
   onInputChange();
 }
 function resetSim() {
-  el('input-val').value = '1011';
-  el('err-pos').value   = '0';
+  el('input-val').value = '1011'; el('err-pos').value = '0';
   el('input-info').textContent = '';
   stats = {total:0, errors:0, corrected:0};
   ['stat-total','stat-errors','stat-corrected'].forEach(id => el(id).textContent='0');
-  dataBits = [1,0,1,1];
-  runSimulation();
+  dataBits = [1,0,1,1]; runSimulation();
 }
 function setSpeed(v) { stepDelay = v; }
 
-// ─── MAIN SIMULATION ──────────────────────────────────────
+// ─── MAIN SIMULATION (Tab 1) ─────────────────────────────
 function runSimulation() {
-  // re-parse from input in case called directly
   const parsed = parseInput(el('input-val').value);
   if (parsed) dataBits = parsed.bits;
-
   const bits = dataBits;
   const err  = parseInt(el('err-pos').value)||0;
   const cw   = encodeHamming(bits);
   const rx   = introduceError(cw, err);
   const {cor, syn, data, s1, s2, s3} = decodeHamming(rx);
 
-  // stats
   stats.total++;
   if (err!==0) stats.errors++;
   if (err!==0 && JSON.stringify(data)===JSON.stringify(bits)) stats.corrected++;
@@ -639,19 +793,15 @@ function runSimulation() {
   el('stat-errors').textContent    = stats.errors;
   el('stat-corrected').textContent = stats.corrected;
 
-  // animated steps
-  if (animTimer) { clearTimeout(animTimer); animTimer=null; }
   const d = stepDelay;
   const d1=bits[0],d2=bits[1],d3=bits[2],d4=bits[3];
   const p1=cw[0],p2=cw[1],p3=cw[3];
 
-  // Step 1: data bits
   setTimeout(() => {
     bits.forEach((b,i) => setCell(`dc${i}`, b, 'data'));
     el('decimal-lbl').textContent = `= ${bitsToDecimal(bits)}₁₀`;
   }, 0);
 
-  // Step 2: encoding
   setTimeout(() => {
     setFormulas('parity-formulas', [
       [`p₁ = d₁⊕d₂⊕d₄ = ${d1}⊕${d2}⊕${d4} = ${p1}`, p1===0],
@@ -661,21 +811,14 @@ function runSimulation() {
     cw.forEach((b,i) => setCell(`tx${i}`, b, i===0||i===1||i===3 ? 'parity' : 'data'));
   }, d);
 
-  // Step 3: channel / received
   setTimeout(() => {
     rx.forEach((b,i) => {
-      const st = err===i+1 ? 'error' : (i===0||i===1||i===3 ? 'parity' : 'data');
-      setCell(`rx${i}`, b, st);
+      setCell(`rx${i}`, b, err===i+1 ? 'error' : (i===0||i===1||i===3 ? 'parity' : 'data'));
     });
-    if (err===0) {
-      el('error-lbl').textContent='Signal transmis sans erreur ✓'; el('error-lbl').style.color='var(--green)';
-    } else {
-      el('error-lbl').textContent=`⚠ Erreur en position ${err} : x[${err}]=${cw[err-1]} → y[${err}]=${rx[err-1]}`;
-      el('error-lbl').style.color='var(--red)';
-    }
+    if (err===0) { el('error-lbl').textContent='Signal transmis sans erreur ✓'; el('error-lbl').style.color='var(--green)'; }
+    else { el('error-lbl').textContent=`⚠ Erreur position ${err} : x[${err}]=${cw[err-1]} → y[${err}]=${rx[err-1]}`; el('error-lbl').style.color='var(--red)'; }
   }, d*2);
 
-  // Step 4: syndrome
   setTimeout(() => {
     const y=rx;
     setFormulas('syn-formulas', [
@@ -683,55 +826,35 @@ function runSimulation() {
       [`s₂ = y₂⊕y₃⊕y₆⊕y₇ = ${y[1]}⊕${y[2]}⊕${y[5]}⊕${y[6]} = ${s2}`, s2===0],
       [`s₃ = y₄⊕y₅⊕y₆⊕y₇ = ${y[3]}⊕${y[4]}⊕${y[5]}⊕${y[6]} = ${s3}`, s3===0],
     ]);
-    if (syn===0) {
-      el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = 0  →  Aucune erreur ✓`;
-      el('syn-result').style.color='var(--green)';
-    } else {
-      el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = ${syn}₁₀  →  Erreur position ${syn}`;
-      el('syn-result').style.color='var(--red)';
-    }
+    if (syn===0) { el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = 0  →  Aucune erreur ✓`; el('syn-result').style.color='var(--green)'; }
+    else         { el('syn-result').textContent=`Syndrome = (${s3} ${s2} ${s1})₂ = ${syn}₁₀  →  Erreur position ${syn}`; el('syn-result').style.color='var(--red)'; }
   }, d*3);
 
-  // Step 5: correction
   setTimeout(() => {
     cor.forEach((b,i) => {
-      let st = i===syn-1 && syn!==0 ? 'fixed' : (i===0||i===1||i===3 ? 'parity' : 'data');
-      setCell(`cr${i}`, b, st);
+      setCell(`cr${i}`, b, i===syn-1&&syn!==0 ? 'fixed' : (i===0||i===1||i===3 ? 'parity' : 'data'));
     });
     data.forEach((b,i) => setCell(`out${i}`, b, 'data'));
-    if (syn!==0 && err!==0) {
-      el('corr-lbl').textContent=`Bit ${syn} corrigé : ${rx[syn-1]} → ${cor[syn-1]} ✓`;
-      el('corr-lbl').style.color='var(--green)';
-    } else if (syn===0) {
-      el('corr-lbl').textContent='Aucune correction nécessaire'; el('corr-lbl').style.color='var(--text3)';
-    } else {
-      el('corr-lbl').textContent='Correction appliquée'; el('corr-lbl').style.color='var(--amber)';
-    }
+    if (syn!==0 && err!==0)   { el('corr-lbl').textContent=`Bit ${syn} corrigé : ${rx[syn-1]} → ${cor[syn-1]} ✓`; el('corr-lbl').style.color='var(--green)'; }
+    else if (syn===0)          { el('corr-lbl').textContent='Aucune correction nécessaire'; el('corr-lbl').style.color='var(--text3)'; }
+    else                       { el('corr-lbl').textContent='Correction appliquée'; el('corr-lbl').style.color='var(--amber)'; }
   }, d*4);
 
-  // Step 6: result
   setTimeout(() => {
     const ok = JSON.stringify(data)===JSON.stringify(bits);
-    const decOrig  = bitsToDecimal(bits);
-    const decRecon = bitsToDecimal(data);
     el('result-big').textContent = ok ? '✓ MESSAGE INTACT' : '✗ ERREUR NON CORRIGÉE';
     el('result-big').style.color = ok ? 'var(--green)' : 'var(--red)';
-    el('orig-lbl').textContent   = `Original    : ${bits.join('')} = ${decOrig}`;
-    el('recon-lbl').textContent  = `Reconstruit : ${data.join('')} = ${decRecon}`;
+    el('orig-lbl').textContent   = `Original    : ${bits.join('')} = ${bitsToDecimal(bits)}`;
+    el('recon-lbl').textContent  = `Reconstruit : ${data.join('')} = ${bitsToDecimal(data)}`;
     el('recon-lbl').style.color  = ok ? 'var(--accent2)' : 'var(--red)';
   }, d*5);
 }
 
-// ─── TEXT SIMULATION ─────────────────────────────────────
-function updateBerLabel() {
-  const v = parseFloat(el('ber-slider').value);
-  el('ber-label').textContent = Math.round(v*100) + ' %';
-}
-
+// ─── TEXT SIMULATION (Tab 2) ─────────────────────────────
 function runTextSim() {
   const text = el('txt-input').value;
   if (!text) return;
-  const ber = parseFloat(el('ber-slider').value);
+  const ber = currentBER;
   const framesEncoded = encodeText(text);
 
   const framesRx = framesEncoded.map(f => {
@@ -744,7 +867,6 @@ function runTextSim() {
     return {...f, cor, syn, data4Decoded:data, s1, s2, s3};
   });
 
-  // Reconstruct text
   const recon = [];
   for (let i=0; i<decoded.length; i+=2) {
     const bits8 = [...decoded[i].data4Decoded, ...decoded[i+1].data4Decoded];
@@ -752,56 +874,58 @@ function runTextSim() {
   }
   const reconStr = recon.join('');
   const ok = reconStr===text;
+  const alteredCount = Array.from(text).filter((c,i)=>c!==reconStr[i]).length;
 
-  el('txt-summary').style.display='flex';
-  el('txt-result-big').textContent = ok ? '✓ TEXTE INTACT' : `⚠ ${Array.from(text).filter((c,i)=>c!==reconStr[i]).length} CAR. ALTÉRÉ(S)`;
+  const ebn0dB = parseFloat(el('ebn0-slider').value);
+  el('txt-ber-applied').textContent = formatBER(ber) + `  (${ebn0dB.toFixed(1)} dB)`;
+  el('txt-info-lbl').textContent = `${text.length} car. · ${framesEncoded.length} trames Hamming(7,4)`;
+
+  const summary = el('txt-summary');
+  summary.classList.add('show');
+  el('txt-result-big').textContent = ok ? '✓ TEXTE INTACT' : `⚠ ${alteredCount} CAR. ALTÉRÉ(S)`;
   el('txt-result-big').style.color = ok ? 'var(--green)' : 'var(--red)';
   el('txt-orig-lbl').textContent   = `Original : ${text}`;
-  el('txt-recon-lbl').textContent  = `→  Reçu : ${reconStr}`;
+  el('txt-recon-lbl').textContent  = `→ Reçu   : ${reconStr}`;
   el('txt-recon-lbl').style.color  = ok ? 'var(--green)' : 'var(--red)';
 
-  // Build cards
   const grid = el('cards-grid');
   grid.innerHTML = '';
   const POS_LBLS = ['p₁','p₂','d₁','p₃','d₂','d₃','d₄'];
 
   decoded.forEach((nd, idx) => {
     const chIdx = Math.floor(idx/2)+1;
-    const hdrColor = nd.nib===0 ? 'var(--teal)' : 'var(--purple)';
+    const hdrBg = nd.nib===0 ? 'var(--teal)' : 'var(--purple)';
+    const hdrColor = nd.nib===0 ? 'var(--bg)' : '#fff';
     const nibLabel = nd.nib===0 ? 'HAUT' : 'BAS';
-    const nib_ok   = JSON.stringify(nd.data4Decoded)===JSON.stringify(nd.data4);
-    const errBits  = nd.rx.map((b,i)=>b!==nd.cw[i]?i+1:null).filter(Boolean);
-
+    const nib_ok = JSON.stringify(nd.data4Decoded)===JSON.stringify(nd.data4);
+    const errBits = nd.rx.map((b,i)=>b!==nd.cw[i]?i+1:null).filter(Boolean);
     const {data4, cw, rx, cor, syn, s1, s2, s3} = nd;
-    const d1=data4[0],d2=data4[1],d3=data4[2],d4=data4[3];
-    const p1=cw[0],p2=cw[1],p3=cw[3];
-    const s3v=s3;
+    const [d1,d2,d3,d4] = data4;
+    const p1=cw[0], p2=cw[1], p3=cw[3];
 
-    function bitCells(bits, styles, size='sm') {
-      return bits.map((b,i)=>`<div class="bit-cell-${size} ${styles[i]}">${b}</div>`).join('');
-    }
-    function bitRowSm(label, bits, styles) {
-      const labels = bits.map((_,i)=>{
-        const s=styles[i];
-        const c=s==='parity'?'var(--bit-parity-fg)':s==='data'?'var(--bit-data-fg)':s==='fixed'?'var(--green)':s==='error'?'var(--red)':'var(--text3)';
-        return `<span style="width:34px;text-align:center;font-size:9px;color:${c}">${POS_LBLS[i]}</span>`;
+    function bCells(bits, styles) {
+      return bits.map((b,i) => {
+        const s = styles[i];
+        return `<div class="bit-cell-sm ${s}">${b}</div>`;
       }).join('');
-      return `
-        <div class="bit-row-sm">
-          <span class="bit-row-sm-label">${label}</span>
-          <div>
-            <div style="display:flex;gap:2px">${bitCells(bits,styles)}</div>
-            <div style="display:flex;gap:2px;margin-top:1px">${labels}</div>
-          </div>
-        </div>`;
     }
-
+    function bRowSm(label, bits, styles) {
+      const lbls = bits.map((_,i) => {
+        const s=styles[i];
+        const c = s==='parity'?'var(--dp-fg)':s==='data'?'var(--dd-fg)':s==='fixed'?'var(--green)':s==='error'?'var(--red)':'var(--text3)';
+        return `<span style="width:32px;text-align:center;font-size:8px;color:${c};font-family:'Space Mono',monospace">${POS_LBLS[i]}</span>`;
+      }).join('');
+      return `<div class="bit-row-sm">
+        <span class="bit-row-sm-label">${label}</span>
+        <div><div style="display:flex;gap:2px">${bCells(bits,styles)}</div>
+        <div style="display:flex;gap:2px;margin-top:1px">${lbls}</div></div></div>`;
+    }
     function fmla(txt, ok) {
-      return `<div class="formula ${ok?'ok':'bad'}" style="font-size:10px;padding:1px 5px">${txt}</div>`;
+      return `<div class="formula ${ok?'ok':'bad'}" style="font-size:9px;padding:2px 6px">${txt}</div>`;
     }
     function synTxt() {
-      if (syn===0) return `<div style="font-size:10px;background:var(--bg3);padding:3px 5px;border-radius:3px;color:var(--green)">(${s3v}${s2}${s1})₂=0 → OK ✓</div>`;
-      return `<div style="font-size:10px;background:var(--bg3);padding:3px 5px;border-radius:3px;color:var(--red)">(${s3v}${s2}${s1})₂=${syn} → pos ${syn}</div>`;
+      if (syn===0) return `<div style="font-size:9px;background:var(--bg2);padding:3px 6px;border-radius:3px;color:var(--green);font-family:'Space Mono',monospace">(${s3}${s2}${s1})₂=0 → OK ✓</div>`;
+      return `<div style="font-size:9px;background:var(--bg2);padding:3px 6px;border-radius:3px;color:var(--red);font-family:'Space Mono',monospace">(${s3}${s2}${s1})₂=${syn} → pos ${syn}</div>`;
     }
 
     const txStyles=['parity','parity','data','parity','data','data','data'];
@@ -811,46 +935,46 @@ function runTextSim() {
     const card = document.createElement('div');
     card.className = 'nibble-card';
     card.innerHTML = `
-      <div class="nibble-card-hdr" style="background:${hdrColor};color:var(--bg)">
+      <div class="nibble-card-hdr" style="background:${hdrBg};color:${hdrColor}">
         <span>#${chIdx} '${nd.ch}' ASC=${nd.ch.charCodeAt(0)}</span>
-        <span>${nibLabel}</span>
+        <span style="font-size:9px;opacity:.8">${nibLabel}</span>
       </div>
       <div class="nibble-card-body">
         <div class="card-section-title" style="color:var(--teal)">① DONNÉES</div>
         <div class="bit-row-sm">
-          <span class="bit-row-sm-label">d1 d2 d3 d4 :</span>
-          <div style="display:flex;gap:2px">${bitCells(data4,['data','data','data','data'])}</div>
-          <span style="font-size:11px;font-weight:bold;color:var(--teal);margin-left:6px">= ${bitsToDecimal(data4)}</span>
+          <span class="bit-row-sm-label">d₁ d₂ d₃ d₄ :</span>
+          <div style="display:flex;gap:2px">${bCells(data4,['data','data','data','data'])}</div>
+          <span style="font-size:10px;font-weight:700;color:var(--teal);margin-left:5px;font-family:'Space Mono',monospace">= ${bitsToDecimal(data4)}</span>
         </div>
         <hr class="card-divider">
         <div class="card-section-title" style="color:var(--purple)">② ENCODAGE</div>
         ${fmla(`p₁=${d1}⊕${d2}⊕${d4}=${p1}`,p1===0)}
         ${fmla(`p₂=${d1}⊕${d3}⊕${d4}=${p2}`,p2===0)}
         ${fmla(`p₃=${d2}⊕${d3}⊕${d4}=${p3}`,p3===0)}
-        ${bitRowSm('Émis x(7) :',cw,txStyles)}
+        ${bRowSm('Émis x(7) :',cw,txStyles)}
         <hr class="card-divider">
         <div class="card-section-title" style="color:var(--amber)">③ CANAL</div>
-        ${bitRowSm('Reçu y(7) :',rx,rxStyles)}
-        <div style="font-size:10px;color:${errBits.length?'var(--red)':'var(--green)'}">
+        ${bRowSm('Reçu y(7) :',rx,rxStyles)}
+        <div style="font-size:9px;color:${errBits.length?'var(--red)':'var(--green)'};font-family:'Space Mono',monospace;margin-top:2px">
           ${errBits.length ? '⚠ pos '+JSON.stringify(errBits) : '✓ Sans erreur'}
         </div>
         <hr class="card-divider">
         <div class="card-section-title" style="color:var(--red)">④ SYNDROME</div>
         ${fmla(`s₁=y₁⊕y₃⊕y₅⊕y₇=${rx[0]}⊕${rx[2]}⊕${rx[4]}⊕${rx[6]}=${s1}`,s1===0)}
         ${fmla(`s₂=y₂⊕y₃⊕y₆⊕y₇=${rx[1]}⊕${rx[2]}⊕${rx[5]}⊕${rx[6]}=${s2}`,s2===0)}
-        ${fmla(`s₃=y₄⊕y₅⊕y₆⊕y₇=${rx[3]}⊕${rx[4]}⊕${rx[5]}⊕${rx[6]}=${s3v}`,s3v===0)}
+        ${fmla(`s₃=y₄⊕y₅⊕y₆⊕y₇=${rx[3]}⊕${rx[4]}⊕${rx[5]}⊕${rx[6]}=${s3}`,s3===0)}
         ${synTxt()}
         <hr class="card-divider">
         <div class="card-section-title" style="color:var(--green)">⑤ CORRECTION</div>
-        ${bitRowSm('Corrigé ĉ :',cor,corStyles)}
-        ${syn!==0?`<div style="font-size:10px;color:var(--green)">Bit ${syn}: ${rx[syn-1]}→${cor[syn-1]} ✓</div>`:''}
-        <div class="bit-row-sm">
+        ${bRowSm('Corrigé ĉ :',cor,corStyles)}
+        ${syn!==0?`<div style="font-size:9px;color:var(--green);font-family:'Space Mono',monospace">Bit ${syn}: ${rx[syn-1]}→${cor[syn-1]} ✓</div>`:''}
+        <div class="bit-row-sm" style="margin-top:3px">
           <span class="bit-row-sm-label">Données d̂ :</span>
-          <div style="display:flex;gap:2px">${bitCells(nd.data4Decoded,['data','data','data','data'])}</div>
-          <span style="font-size:11px;font-weight:bold;color:var(--teal);margin-left:6px">= ${bitsToDecimal(nd.data4Decoded)}</span>
+          <div style="display:flex;gap:2px">${bCells(nd.data4Decoded,['data','data','data','data'])}</div>
+          <span style="font-size:10px;font-weight:700;color:var(--teal);margin-left:5px;font-family:'Space Mono',monospace">= ${bitsToDecimal(nd.data4Decoded)}</span>
         </div>
         <hr class="card-divider">
-        <div style="text-align:center;font-size:11px;font-weight:bold;color:${nib_ok?'var(--green)':'var(--red)'}">
+        <div style="text-align:center;font-size:11px;font-weight:700;color:${nib_ok?'var(--green)':'var(--red)'};letter-spacing:1px">
           ${nib_ok?'✓ INTACT':'✗ ALTÉRÉ'}
         </div>
       </div>
@@ -868,6 +992,7 @@ function showTab(n) {
 }
 
 // ─── Init ─────────────────────────────────────────────────
+onEbn0Change();
 runSimulation();
 </script>
 </body>
